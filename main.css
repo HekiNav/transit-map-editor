@@ -1,0 +1,37 @@
+body,
+#tube-map {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+#controls {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 2vw;
+    flex-direction: column;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 6vh;
+    width: 6vh;
+    background-color: #fff;
+    color: #000;
+    border: #000 2px solid;
+    border-radius: 1vh;
+    cursor: pointer;
+}
+
+.button.active {
+    background-color: #999;
+}
