@@ -13,7 +13,11 @@ let svg
 let mapData = { lines: [] }
 let map
 let snapLineContainer
+let nodeLineContainer
 let mode = null
+
+let selected
+
 
 let lastNode = null
 let selectedLine = null
@@ -83,6 +87,8 @@ const snappers = [
 
 const lineHelper = d3.line().x(d => d.x).y(d => d.y).curve(circleCorners.radius(500))
 
+const zoom = d3.zoom().scaleExtent([0.1, 6]).on("zoom", zoomed);
+
 function start() {
     window.addEventListener("resize", e => {
         svg
@@ -97,10 +103,11 @@ function start() {
     const g = svg.append("g")
     map = g.append("g").attr("id", "map")
     snapLineContainer = g.append("g").attr("id", "snapLines")
+    nodeLineContainer = g.append("g").attr("id", "nodeLines")
 
 
     //  ZOOM/PAN SYSTEM  //////////////////////////////////////////
-    const zoom = d3.zoom().scaleExtent([0.1, 6]).on("zoom", zoomed);
+
     const zoomContainer = svg.call(zoom);
 
     zoom.scaleTo(zoomContainer, initialScale);
@@ -166,13 +173,30 @@ function start() {
     })
     $("#addLine").on("click", { data: this }, data => {
         setMode(highLightDot, "line")
-        renderMap()
     })
     $("#addStation").on("click", { data: this }, data => {
         setMode(highLightDot, "station")
-        renderMap()
     })
-    setMode(highLightDot, null)
+    $("#move").on("click", { data: this }, data => {
+        setMode(highLightDot, "move")
+    })
+    document.addEventListener("keydown", e => {
+        switch (e.code) {
+            case "KeyM":
+                setMode(highLightDot, "move")
+                break;
+            case "KeyS":
+                setMode(highLightDot, "station")
+                break;
+            case "KeyL":
+                setMode(highLightDot, "line")
+                break;
+            default:
+                console.log(e.code)
+                break;
+        }
+    })
+    setMode(highLightDot, "move")
 }
 
 function renderMap() {
@@ -184,7 +208,7 @@ function renderMap() {
     //adding lines
     newLines.forEach(l => {
         console.log(existingLineIds.some(id => id == l.id), existingLineIds)
-        if (existingLineIds.some(id => id == l.id)) return 
+        if (existingLineIds.some(id => id == l.id)) return
         addLine(l)
     })
     // updating and deleting lines
@@ -198,6 +222,20 @@ function renderMap() {
             n[i].remove()
         }
     })
+    // render nodes on selected line
+    renderNodes(mapData.lines.find(l => l.id == selectedLine))
+
+}
+function renderNodes(line) {
+    clearNodeLines()
+    const color = "green"
+    for (let i = 0; i < line.points.length; i++) {
+        const curr = line.points[i];
+        const prev = line.points[i - 1];
+        addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
+        if (!prev) continue
+        addNodeLine({ color: color, line: [curr, prev] })
+    }
 }
 function addLine(l) {
     map
@@ -211,21 +249,45 @@ function addLine(l) {
 }
 function addSnapLine(snapLines) {
     snapLines.forEach(snapLine => {
-        console.log(snapLine)
         snapLineContainer
             .append('path')
             .datum(snapLine.line)
             .attr('d', lineHelper)
             .style('fill', 'none')
             .style('stroke', snapLine.color)
-            .style('stroke-width', '20')
+            .style('stroke-width', '10')
     })
+}
+function addNode(node) {
+    const size = 40
+    nodeLineContainer
+        .append('rect')
+        .attr('x', node.x - size / 2)
+        .attr('y', node.y - size / 2)
+        .attr('width', size)
+        .attr('height', size)
+        .style('fill', node.fill || "none")
+        .style('stroke', node.color)
+        .style('stroke-width', '10')
+}
+function addNodeLine(nodeLine) {
+    nodeLineContainer
+        .append('path')
+        .datum(nodeLine.line)
+        .attr('d', lineHelper)
+        .style('fill', 'none')
+        .style('stroke', nodeLine.color)
+        .style('stroke-width', '10')
+}
+function clearNodeLines() {
+    nodeLineContainer.selectChildren("*").each((d, i, n) => n[i].remove())
 }
 function clearSnapLines() {
     snapLineContainer.selectChildren("*").each((d, i, n) => n[i].remove())
 }
 
 function zoomed(event) {
+    if (selected) return
     svg.select("g").attr("transform", event.transform.toString());
 }
 function alongSegment(from, toward, distanceAlong) {
@@ -244,18 +306,22 @@ function setMode(obj, m) {
                 .attr("r", 50)
                 .attr("fill", "black")
                 .attr("stroke", "none")
+            console.log("e")
+            document.querySelector("svg").style.cursor = "url('img/addLine.png'),auto"
             break;
         case "station":
             obj
                 .attr("r", 75)
                 .attr("fill", "white")
                 .attr("stroke", "black")
+            document.querySelector("svg").style.cursor = "url('img/addStation.png'),auto"
             break;
         default:
             obj
                 .attr("r", 50)
                 .attr("fill", "none")
                 .attr("stroke", "none")
+            document.querySelector("svg").style.cursor = "move"
             break;
     }
 }
@@ -266,14 +332,47 @@ function snappedMouse(event, g) {
     return { x: Math.round(pos[0] / gridGap) * gridGap, y: Math.round(pos[1] / gridGap) * gridGap }
 }
 function snapMove(event, obj, g) {
+    const pressed = event.buttons
+    event.preventDefault()
     const mouse = snappedMouse(event, g)
     clearSnapLines()
-    snappers.forEach(snap => {
-        const result = snap.function(mouse, lastNode, mapData.lines.find(l => l.id == selectedLine))
-        console.log(result)
-        if (result) addSnapLine(result)
-    })
+    if (mode == "line" || mode == "station") {
+        snappers.forEach(snap => {
+            const result = snap.function(mouse, lastNode, mapData.lines.find(l => l.id == selectedLine))
+            console.log(result)
+            if (result) addSnapLine(result)
+        })
+    } else if (mode == "move" && selectedLine) {
+        if (selected) {
+            mapData.lines.find(l => l.id == selectedLine).points.forEach(p => {
+                if (!p.selected) return
+                p.x = mouse.x
+                p.y = mouse.y
+                renderMap()
+            })
+        }
+        const sel = mapData.lines.find(l => l.id == selectedLine)
+        selected = false
+        mapData.lines.find(l => l.id == selectedLine).points.forEach(p => p.selected = false)
+        const nodes = sel.points.map((p,i) => {
+            if (p.x == mouse.x && p.y == mouse.y && pressed == 2) {
+                p.fill = "blue"
+                mapData.lines.find(l => l.id == selectedLine).points[i].selected = true
+                selected = true
+            } else {
+                p.fill = null
+            }
+            return p
+        })
+        renderNodes({ id: sel.id, points: nodes })
+        console.log(nodes)
+    }
     obj.attr("cx", mouse.x).attr("cy", mouse.y);
+    if (!selected) {
+        svg.call(zoom);
+    } else {
+        svg.on('.zoom', null);
+    }
 }
 
 start()

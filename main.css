@@ -20,16 +20,30 @@ body,
 }
 
 .button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 6vh;
+    width: 6vh;
+    color: #000;
+    border: #000 solid 2px;
+    border-bottom: #000 solid 8px;
+    margin: 4px 0;
+    border-radius: 1vh;
+    cursor: pointer;
+    background-color: black;
+    position: relative;
+}
+.button:active {
+    border-bottom: #000 solid 2px;
+    margin-top: 12px;
+}
+
+.button span {
+    border-radius: calc(1vh - 2px);
     height: 6vh;
     width: 6vh;
     background-color: #fff;
-    color: #000;
-    border: #000 2px solid;
-    border-radius: 1vh;
-    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .button.active {
