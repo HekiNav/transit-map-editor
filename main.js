@@ -192,7 +192,6 @@ function start() {
                 setMode(highLightDot, "line")
                 break;
             default:
-                console.log(e.code)
                 break;
         }
     })
@@ -207,7 +206,6 @@ function renderMap() {
     const newLines = mapData.lines
     //adding lines
     newLines.forEach(l => {
-        console.log(existingLineIds.some(id => id == l.id), existingLineIds)
         if (existingLineIds.some(id => id == l.id)) return
         addLine(l)
     })
@@ -306,7 +304,6 @@ function setMode(obj, m) {
                 .attr("r", 50)
                 .attr("fill", "black")
                 .attr("stroke", "none")
-            console.log("e")
             document.querySelector("svg").style.cursor = "url('img/addLine.png'),auto"
             break;
         case "station":
@@ -333,16 +330,15 @@ function snappedMouse(event, g) {
 }
 function snapMove(event, obj, g) {
     const pressed = event.buttons
-    event.preventDefault()
     const mouse = snappedMouse(event, g)
     clearSnapLines()
-    if (mode == "line" || mode == "station") {
+    if (mode == "line" || mode == "station" || (mode == "move" && pressed == 2)) {
         snappers.forEach(snap => {
             const result = snap.function(mouse, lastNode, mapData.lines.find(l => l.id == selectedLine))
-            console.log(result)
             if (result) addSnapLine(result)
         })
-    } else if (mode == "move" && selectedLine) {
+    }
+    if (mode == "move" && selectedLine) {
         if (selected) {
             mapData.lines.find(l => l.id == selectedLine).points.forEach(p => {
                 if (!p.selected) return
@@ -354,7 +350,8 @@ function snapMove(event, obj, g) {
         const sel = mapData.lines.find(l => l.id == selectedLine)
         selected = false
         mapData.lines.find(l => l.id == selectedLine).points.forEach(p => p.selected = false)
-        const nodes = sel.points.map((p,i) => {
+        const nodes = sel.points.map((p, i) => {
+
             if (p.x == mouse.x && p.y == mouse.y && pressed == 2) {
                 p.fill = "blue"
                 mapData.lines.find(l => l.id == selectedLine).points[i].selected = true
@@ -365,7 +362,6 @@ function snapMove(event, obj, g) {
             return p
         })
         renderNodes({ id: sel.id, points: nodes })
-        console.log(nodes)
     }
     obj.attr("cx", mouse.x).attr("cy", mouse.y);
     if (!selected) {
