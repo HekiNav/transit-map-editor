@@ -10,7 +10,7 @@ const initialScale = 0.5;
 const initialTranslate = [bigNumber / 2, bigNumber / 2];
 
 let svg
-let mapData = { lines: [] }
+let mapData = { lines: [], nodes: {} }
 let map
 let snapLineContainer
 let nodeLineContainer
@@ -19,7 +19,6 @@ let mode = null
 let selected
 
 
-let lastNode = null
 let selectedLine = null
 
 const snappers = [
@@ -51,7 +50,7 @@ const snappers = [
             if (!pos || !path) return null
             const color = "red"
             let paths = []
-            path.points.forEach(n => {
+            path.nodes.forEach(n => {
                 // horizontal
                 if (pos.y == n.y ||
                     // vertical
@@ -79,13 +78,15 @@ const snappers = [
                 // diagonal 2
                 pos.x + pos.y == prev.x + prev.y
             ) return [{ color: color, line: [{ x: pos.x, y: pos.y }, { x: prev.x, y: prev.y }] }]
-            else return null
+            else return [{ color: "yellow", line: [{ x: pos.x, y: pos.y }, { x: prev.x, y: prev.y }] }]
         }
     }
 ]
 
 
-const lineHelper = d3.line().x(d => d.x).y(d => d.y).curve(circleCorners.radius(500))
+const lineHelper = d3.line().x(d => idToNode(d).x).y(d => idToNode(d).y).curve(circleCorners.radius(500))
+
+const XYlineHelper = d3.line().x(d => d.x).y(d => d.y)
 
 const zoom = d3.zoom().scaleExtent([0.1, 6]).on("zoom", zoomed);
 
@@ -147,6 +148,28 @@ function start() {
         .select('.horizontal-grid')
         .attr('transform', `translate(${0}, ${0})`)
         .call(yGridGenerator)
+
+    c.select('.vertical-grid')
+        .selectAll('.tick line')
+        .each(function (d) {
+            if (d % (gridGap * 5) === 0) {
+                d3.select(this).attr('stroke-width', '2');
+            }
+            if (d % (gridGap * 20) === 0) {
+                d3.select(this).attr('stroke-width', '3');
+            }
+        });
+
+    c.select('.horizontal-grid')
+        .selectAll('.tick line')
+        .each(function (d) {
+            if (d % (gridGap * 5) === 0) {
+                d3.select(this).attr('stroke-width', '2');
+            }
+            if (d % (gridGap * 20) === 0) {
+                d3.select(this).attr('stroke-width', '3');
+            }
+        });
     // EDITOR FUNCTIONALITY ///////////////////////////////////////////////////
     const highLightDot = g
         .append("circle")
@@ -158,14 +181,22 @@ function start() {
                 if (!mapData.lines[0]) {
                     mapData.lines.push({
                         id: 1,
-                        points: []
+                        nodes: []
                     })
                     selectedLine = 1
                 }
                 const pos = snappedMouse(e, g)
-                mapData.lines[0].points.push(pos)
-                lastNode = pos
+
+                const node = new Node(pos.x, pos.y)
+                idToLine(selectedLine).nodes.forEach(n => idToNode(n).active = false)
+                mapData.nodes[node.id] = node
+                idToLine(selectedLine).nodes.push(node.id)
                 renderMap()
+                break;
+            case "station":
+                const active = activeNode()
+                if (!active) return
+                mapData.nodes[active.id] = Stop.convertFromNode(active, "TEST")
                 break;
             default:
                 break;
@@ -221,24 +252,34 @@ function renderMap() {
         }
     })
     // render nodes on selected line
-    renderNodes(mapData.lines.find(l => l.id == selectedLine))
+    renderNodes(idToLine(selectedLine))
 
 }
 function renderNodes(line) {
+    console.log(line)
     clearNodeLines()
     const color = "green"
-    for (let i = 0; i < line.points.length; i++) {
-        const curr = line.points[i];
-        const prev = line.points[i - 1];
+    for (let i = 0; i < line.nodes.length; i++) {
+        const curr = idToNode(line.nodes[i])
+        const prev = idToNode(line.nodes[i - 1])
         addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
         if (!prev) continue
         addNodeLine({ color: color, line: [curr, prev] })
     }
 }
+function idToNode(id) {
+    return mapData.nodes[id]
+}
+function idToLine(id) {
+    return mapData.lines.find(l => l.id == id)
+}
+function activeNode() {
+    return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).active == true) :  null)
+}
 function addLine(l) {
     map
         .append('path')
-        .datum(l.points)
+        .datum(l.nodes)
         .attr('d', lineHelper)
         .attr('id', l.id)
         .style('fill', 'none')
@@ -250,7 +291,7 @@ function addSnapLine(snapLines) {
         snapLineContainer
             .append('path')
             .datum(snapLine.line)
-            .attr('d', lineHelper)
+            .attr('d', XYlineHelper)
             .style('fill', 'none')
             .style('stroke', snapLine.color)
             .style('stroke-width', '10')
@@ -272,7 +313,7 @@ function addNodeLine(nodeLine) {
     nodeLineContainer
         .append('path')
         .datum(nodeLine.line)
-        .attr('d', lineHelper)
+        .attr('d', XYlineHelper)
         .style('fill', 'none')
         .style('stroke', nodeLine.color)
         .style('stroke-width', '10')
@@ -332,36 +373,40 @@ function snapMove(event, obj, g) {
     const pressed = event.buttons
     const mouse = snappedMouse(event, g)
     clearSnapLines()
+    console.log(idToLine(selectedLine))
     if (mode == "line" || mode == "station" || (mode == "move" && pressed == 2)) {
         snappers.forEach(snap => {
-            const result = snap.function(mouse, lastNode, mapData.lines.find(l => l.id == selectedLine))
+            const lastNode = activeNode()
+            const result = snap.function(mouse, lastNode, idToLine(selectedLine))
             if (result) addSnapLine(result)
         })
     }
     if (mode == "move" && selectedLine) {
+
         if (selected) {
-            mapData.lines.find(l => l.id == selectedLine).points.forEach(p => {
+            idToLine(selectedLine).nodes.forEach(id => {
+                const p = mapData.nodes[id]
                 if (!p.selected) return
                 p.x = mouse.x
                 p.y = mouse.y
                 renderMap()
             })
         }
-        const sel = mapData.lines.find(l => l.id == selectedLine)
+        const sel = idToLine(selectedLine)
         selected = false
-        mapData.lines.find(l => l.id == selectedLine).points.forEach(p => p.selected = false)
-        const nodes = sel.points.map((p, i) => {
-
+        idToLine(selectedLine).nodes.forEach(id => idToNode(id).selected = false)
+        const nodes = sel.nodes.map((id, i) => {
+            const p = idToNode(id)
             if (p.x == mouse.x && p.y == mouse.y && pressed == 2) {
                 p.fill = "blue"
-                mapData.lines.find(l => l.id == selectedLine).points[i].selected = true
+                idToNode(idToLine(id).nodes[i]).selected = true
                 selected = true
             } else {
                 p.fill = null
             }
-            return p
+            return p.id
         })
-        renderNodes({ id: sel.id, points: nodes })
+        renderNodes({ id: sel.id, nodes: nodes })
     }
     obj.attr("cx", mouse.x).attr("cy", mouse.y);
     if (!selected) {
