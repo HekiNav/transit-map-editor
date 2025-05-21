@@ -84,7 +84,7 @@ const snappers = [
 ]
 
 
-const lineHelper = d3.line().x(d => idToNode(d).x).y(d => idToNode(d).y).curve(circleCorners.radius(500))
+const lineHelper = (r = 500) => d3.line().x(d => idToNode(d).x).y(d => idToNode(d).y).curve(circleCorners.radius(r))
 
 const XYlineHelper = d3.line().x(d => d.x).y(d => d.y)
 
@@ -153,10 +153,10 @@ function start() {
         .selectAll('.tick line')
         .each(function (d) {
             if (d % (gridGap * 5) === 0) {
-                d3.select(this).attr('stroke-width', '2');
+                d3.select(this).attr('stroke-width', '3');
             }
             if (d % (gridGap * 20) === 0) {
-                d3.select(this).attr('stroke-width', '3');
+                d3.select(this).attr('stroke-width', '5');
             }
         });
 
