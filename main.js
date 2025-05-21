@@ -194,7 +194,7 @@ function start() {
                 renderMap()
                 break;
             case "station":
-                const active = activeNode()
+                const active = hoveringNode()
                 if (!active) return
                 mapData.nodes[active.id] = Stop.convertFromNode(active, "TEST")
                 break;
@@ -211,8 +211,25 @@ function start() {
     $("#move").on("click", { data: this }, data => {
         setMode(highLightDot, "move")
     })
+    $("#save").on("click", { data: this }, data => {
+        save() 
+    })
+    $("#load").on("click", { data: this }, data => {
+        load()
+    })
     document.addEventListener("keydown", e => {
-        switch (e.code) {
+        if (e.ctrlKey) switch (e.code) {
+            case "KeyS":
+                save()
+                e.preventDefault()
+                break;
+            case "KeyL":
+                load()
+                e.preventDefault()
+                break;
+            default:
+                break;
+        } else switch (e.code) {
             case "KeyM":
                 setMode(highLightDot, "move")
                 break;
@@ -253,7 +270,6 @@ function renderMap() {
     })
     // render nodes on selected line
     renderNodes(idToLine(selectedLine))
-
 }
 function renderNodes(line) {
     console.log(line)
@@ -262,10 +278,17 @@ function renderNodes(line) {
     for (let i = 0; i < line.nodes.length; i++) {
         const curr = idToNode(line.nodes[i])
         const prev = idToNode(line.nodes[i - 1])
-        addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
+        if (curr.type == "stop") {
+        } else {
+            addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
+        }
+        
         if (!prev) continue
         addNodeLine({ color: color, line: [curr, prev] })
     }
+}
+function addStop(stop) {
+    
 }
 function idToNode(id) {
     return mapData.nodes[id]
@@ -275,6 +298,18 @@ function idToLine(id) {
 }
 function activeNode() {
     return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).active == true) :  null)
+}
+function hoveringNode() {
+    return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).hovering == true) :  null)
+}
+function save() {
+    localStorage.setItem("editor.saveFile", JSON.stringify(mapData))
+}
+function load() {
+    if (!localStorage.getItem("editor.saveFile")) return
+    mapData = JSON.parse(localStorage.getItem("editor.saveFile"))
+    selectedLine = mapData.lines[0].id
+    renderMap()
 }
 function addLine(l) {
     map
@@ -381,6 +416,7 @@ function snapMove(event, obj, g) {
             if (result) addSnapLine(result)
         })
     }
+    if (selectedLine) idToLine(selectedLine).nodes.forEach(id => idToNode(id).hovering = (idToNode(id).x == mouse.x && idToNode(id).y == mouse.y))
     if (mode == "move" && selectedLine) {
 
         if (selected) {
@@ -399,7 +435,7 @@ function snapMove(event, obj, g) {
             const p = idToNode(id)
             if (p.x == mouse.x && p.y == mouse.y && pressed == 2) {
                 p.fill = "blue"
-                idToNode(idToLine(id).nodes[i]).selected = true
+                idToNode(idToLine(selectedLine).nodes[i]).selected = true
                 selected = true
             } else {
                 p.fill = null

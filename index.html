@@ -10,10 +10,14 @@
 
 <body>
     <div oncontextmenu="return false;" id="map"></div>
+    <div id="referenceMapC"><iframe id="referenceMap" src="https://kartat.hsl.fi/linjakartta" frameborder="0"></iframe></div>
     <div id="controls">
         <div class="button" id="addStation"><span>Sta-<br>tion</span></div>
         <div class="button" id="addLine"><span>Line</span></div>
         <div class="button" id="move"><span>Move</span></div>
+        <div style="height: 2vh;"></div>
+        <div class="button" id="save"><span>Save</span></div>
+        <div class="button" id="load"><span>Load</span></div>
     </div>
     <script src="https://d3js.org/d3.v6.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
