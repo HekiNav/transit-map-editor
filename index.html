@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -10,15 +10,137 @@
 
 <body>
     <div oncontextmenu="return false;" id="map"></div>
-    <div id="referenceMapC"><iframe id="referenceMap" src="https://kartat.hsl.fi/linjakartta" frameborder="0"></iframe></div>
-    <div id="controls">
-        <div class="button" id="addStation"><span>Sta-<br>tion</span></div>
-        <div class="button" id="addLine"><span>Line</span></div>
-        <div class="button" id="move"><span>Move</span></div>
-        <div style="height: 2vh;"></div>
-        <div class="button" id="save"><span>Save</span></div>
-        <div class="button" id="load"><span>Load</span></div>
+    <!-- <div id="referenceMapC"><iframe id="referenceMap" src="https://kartat.hsl.fi/linjakartta" frameborder="0"></iframe>
+    </div> -->
+    <div id="controls" class="columns is-centered mt-4">
+        <div class="button" id="addStation">
+            <span class="icon is-small">
+                <i class="bi bi-plus-circle"></i>
+            </span>
+        </div>
+        <div class="button" id="addLine">
+            <span class="icon is-small">
+                <i class="bi bi-vector-pen"></i>
+            </span>
+        </div>
+        <div class="button" id="move">
+            <span class="icon is-small">
+                <i class="bi bi-arrows-move"></i>
+            </span>
+        </div>
+        <div class="button" id="save">
+            <span class="icon is-small">
+                <i class="bi bi-floppy"></i>
+            </span>
+        </div>
+        <div class="button" id="load">
+            <span class="icon is-small">
+                <i class="bi bi-upload"></i>
+            </span>
+        </div>
+        <div class="button" id="clear">
+            <span class="icon is-small">
+                <i class="bi bi-x-circle"></i>
+            </span>
+        </div>
     </div>
+    <div class="card m-4" id="pleaseMakeMeNarrower">
+        <div class="container p-2 pl-4">
+            <p class="title">Map</p>
+            <aside class="menu">
+                <p class="menu-label">Lines</p>
+                <ul class="menu-list" id="linesContainer">
+                    <li>
+                        <div class="card p-2">
+                            <div class="content">
+                                <nav class="level mb-0">
+                                    <div class="level-left">
+                                        <div class="level-item"><span class="color-circle"></span></div>
+                                        <div class="level-item"><strong>Line 1</strong></div>
+
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="level-item"><small>Line 1 id</small></div>
+                                    </div>
+                                </nav>
+
+                                <br>
+                                <p>Progress</p>
+                                <div class="progress-wrapper">
+                                    <progress class="progress" value="15" max="100">15%</progress>
+                                    <p class="progress-value has-text-black">15%</p>
+                                </div>
+                            </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-pencil"></i></span>
+                                    </div>
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-eye"></i></span>
+                                    </div>
+                                </div>
+                            </nav>
+                        </div>
+                    </li>
+                </ul>
+                <p class="menu-label">Stations</p>
+                <ul class="menu-list" id="linesContainer">
+                    <li>
+                        <div class="card p-2">
+                            <div class="content">
+                                <nav class="level mb-0">
+                                    <div class="level-left">
+                                        <div class="level-item"><strong>Station 1</strong></div>
+
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="level-item"><small>Station 1 id</small></div>
+                                    </div>
+                                </nav>
+
+                                <br>
+                                <p>Lines</p>
+                                <div class="dropdown is-active">
+                                    <div class="dropdown-trigger">
+                                        <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                                            <span>Lines (1)</span>
+                                            <span class="icon is-small">
+                                                <i class="fas fa-angle-down" aria-hidden="true"></i>
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                                        <div class="dropdown-content">
+                                            <a href="#" class="dropdown-item"> Dropdown item </a>
+                                            <a class="dropdown-item"> Other dropdown item </a>
+                                            <a href="#" class="dropdown-item is-active"> Active dropdown item </a>
+                                            <a href="#" class="dropdown-item"> Other dropdown item </a>
+                                            <hr class="dropdown-divider" />
+                                            <a href="#" class="dropdown-item"> With a divider </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-pencil"></i></span>
+                                    </div>
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-eye"></i></span>
+                                    </div>
+                                </div>
+                            </nav>
+                        </div>
+                    </li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+    </div>
+
+
     <script src="https://d3js.org/d3.v6.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>

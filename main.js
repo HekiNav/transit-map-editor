@@ -21,6 +21,14 @@ let selected
 
 let selectedLine = null
 
+const stopStyle = {
+    radius: 1,
+    size: 300,
+    fill: "white",
+    stroke: "black",
+    strokeWidth: 50,
+}
+
 const snappers = [
     /* ADDING A NEW SNAPPER
     // Copy from here =>
@@ -84,9 +92,14 @@ const snappers = [
 ]
 
 
-const lineHelper = (r = 500) => d3.line().x(d => idToNode(d).x).y(d => idToNode(d).y).curve(circleCorners.radius(r))
+const lineHelper = (r = 500) => {
+    return d3.line().x(d => idToNode(d).x).y(d => idToNode(d).y).curve(circleCorners.radius(r))
+}
+const XYLineHelper = r => {
+    return d3.line().x(d => d.x).y(d => d.y).curve(circleCorners.radius(r))
+}
 
-const XYlineHelper = d3.line().x(d => d.x).y(d => d.y)
+const basicLineHelper = d3.line().x(d => d.x).y(d => d.y)
 
 const zoom = d3.zoom().scaleExtent([0.1, 6]).on("zoom", zoomed);
 
@@ -189,14 +202,31 @@ function start() {
 
                 const node = new Node(pos.x, pos.y)
                 idToLine(selectedLine).nodes.forEach(n => idToNode(n).active = false)
+
+
                 mapData.nodes[node.id] = node
                 idToLine(selectedLine).nodes.push(node.id)
                 renderMap()
                 break;
             case "station":
-                const active = hoveringNode()
-                if (!active) return
-                mapData.nodes[active.id] = Stop.convertFromNode(active, "TEST")
+                const mouse = snappedMouse(e, g)
+                const directMatches = Object.values(mapData.nodes).filter(n => n.x == mouse.x && n.y == mouse.y)
+                if (directMatches.length) {
+                    directMatches.forEach(m => {
+                        mapData.nodes[m.id] = Stop.convertFromNode(m, "TEST_CONVERTED")
+                    })
+                } else {
+                    const segmentMatches = mapData.lines.map(l => ({ indexes: pointSegment(l, mouse), line: l }))
+                    const newStop = new Stop(mouse.x, mouse.y, "TEST_GENERATED")
+                    mapData.nodes[newStop.id] = newStop 
+                    segmentMatches.forEach(m => {
+                        m.indexes.forEach(i => {
+                            m.line.nodes.splice(i, 0, newStop.id)
+                        })
+                    })
+                }
+
+                renderMap()
                 break;
             default:
                 break;
@@ -212,10 +242,13 @@ function start() {
         setMode(highLightDot, "move")
     })
     $("#save").on("click", { data: this }, data => {
-        save() 
+        save()
     })
     $("#load").on("click", { data: this }, data => {
         load()
+    })
+    $("#clear").on("click", { data: this }, data => {
+        clear()
     })
     document.addEventListener("keydown", e => {
         if (e.ctrlKey) switch (e.code) {
@@ -223,8 +256,12 @@ function start() {
                 save()
                 e.preventDefault()
                 break;
-            case "KeyL":
+            case "KeyI":
                 load()
+                e.preventDefault()
+                break;
+            case "KeyC":
+                clear()
                 e.preventDefault()
                 break;
             default:
@@ -248,9 +285,20 @@ function start() {
 
 function renderMap() {
     let existingLineIds = []
+    let existingNodeIds = []
     $("g#map").children().each((i, l) => {
-        existingLineIds.push(l.id)
+        switch (l.getAttribute("data-type")) {
+            case "node":
+                existingNodeIds.push(l.id)
+                break;
+            case "line":
+                existingLineIds.push(l.id)
+                break;
+            default:
+                break;
+        }
     })
+    console.log($("g#map").children())
     const newLines = mapData.lines
     //adding lines
     newLines.forEach(l => {
@@ -258,37 +306,71 @@ function renderMap() {
         addLine(l)
     })
     // updating and deleting lines
-    map.selectAll("path").each((d, i, n) => {
+    map.selectAll("path[data-type=line]").each((d, i, n) => {
         if (newLines.some(l => l.id == n[i].id)) {
             //line is still in data, keep
             //update data for path
-            map.selectChildren("path").attr("d", lineHelper)
+            map.selectChildren("path[data-type=line]").attr("d", lineHelper())
         } else {
             //line no longer in data, delete
             n[i].remove()
         }
     })
+
+    const newNodes = Object.values(mapData.nodes)
+    //adding nodes
+    newNodes.forEach(n => {
+        console.log("e")
+        if (existingNodeIds.some(id => id == n.id) || n.type != "stop") return
+        addStop(n)
+    })
+    // updating and deleting nodes
+    map.selectAll("path[data-type=node]").each((d, i, n) => {
+        if (newNodes.some(l => l.id == n[i].id)) {
+            //node is still in data, keep
+            //update data for path
+            map.selectChildren("path[data-type=node]").attr("d", XYLineHelper(stopStyle.radius * stopStyle.size / 2))
+        } else {
+            //node no longer in data, delete
+            n[i].remove()
+        }
+    })
+
     // render nodes on selected line
-    renderNodes(idToLine(selectedLine))
+    if (selectedLine) renderNodes(idToLine(selectedLine))
+    else renderNodes({ nodes: [] })
 }
 function renderNodes(line) {
-    console.log(line)
     clearNodeLines()
     const color = "green"
     for (let i = 0; i < line.nodes.length; i++) {
         const curr = idToNode(line.nodes[i])
         const prev = idToNode(line.nodes[i - 1])
-        if (curr.type == "stop") {
-        } else {
-            addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
-        }
-        
+        addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
+
         if (!prev) continue
         addNodeLine({ color: color, line: [curr, prev] })
     }
 }
-function addStop(stop) {
-    
+function addStop(s) {
+    const radius = stopStyle.radius * stopStyle.size / 2
+    const nodes = [
+        { x: s.x, y: s.y - radius },
+        { x: s.x + radius, y: s.y - radius },
+        { x: s.x + radius, y: s.y + radius },
+        { x: s.x - radius, y: s.y + radius },
+        { x: s.x - radius, y: s.y - radius },
+        { x: s.x, y: s.y - radius },
+    ]
+    map
+        .append('path')
+        .datum(nodes)
+        .attr('d', XYLineHelper(radius))
+        .attr('id', s.id)
+        .attr('data-type', "node")
+        .style('fill', 'white')
+        .style('stroke', 'black')
+        .style('stroke-width', '50')
 }
 function idToNode(id) {
     return mapData.nodes[id]
@@ -297,10 +379,7 @@ function idToLine(id) {
     return mapData.lines.find(l => l.id == id)
 }
 function activeNode() {
-    return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).active == true) :  null)
-}
-function hoveringNode() {
-    return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).hovering == true) :  null)
+    return idToNode(idToLine(selectedLine) ? idToLine(selectedLine).nodes.find(n => idToNode(n).active == true) : null)
 }
 function save() {
     localStorage.setItem("editor.saveFile", JSON.stringify(mapData))
@@ -311,12 +390,21 @@ function load() {
     selectedLine = mapData.lines[0].id
     renderMap()
 }
+function clear() {
+    mapData = {
+        lines: [],
+        nodes: {}
+    }
+    selectedLine = null
+    renderMap()
+}
 function addLine(l) {
     map
         .append('path')
         .datum(l.nodes)
-        .attr('d', lineHelper)
+        .attr('d', lineHelper())
         .attr('id', l.id)
+        .attr('data-type', "line")
         .style('fill', 'none')
         .style('stroke', 'black')
         .style('stroke-width', '100')
@@ -326,7 +414,7 @@ function addSnapLine(snapLines) {
         snapLineContainer
             .append('path')
             .datum(snapLine.line)
-            .attr('d', XYlineHelper)
+            .attr('d', basicLineHelper)
             .style('fill', 'none')
             .style('stroke', snapLine.color)
             .style('stroke-width', '10')
@@ -348,7 +436,7 @@ function addNodeLine(nodeLine) {
     nodeLineContainer
         .append('path')
         .datum(nodeLine.line)
-        .attr('d', XYlineHelper)
+        .attr('d', basicLineHelper)
         .style('fill', 'none')
         .style('stroke', nodeLine.color)
         .style('stroke-width', '10')
@@ -408,7 +496,6 @@ function snapMove(event, obj, g) {
     const pressed = event.buttons
     const mouse = snappedMouse(event, g)
     clearSnapLines()
-    console.log(idToLine(selectedLine))
     if (mode == "line" || mode == "station" || (mode == "move" && pressed == 2)) {
         snappers.forEach(snap => {
             const lastNode = activeNode()
@@ -416,7 +503,6 @@ function snapMove(event, obj, g) {
             if (result) addSnapLine(result)
         })
     }
-    if (selectedLine) idToLine(selectedLine).nodes.forEach(id => idToNode(id).hovering = (idToNode(id).x == mouse.x && idToNode(id).y == mouse.y))
     if (mode == "move" && selectedLine) {
 
         if (selected) {
@@ -452,4 +538,22 @@ function snapMove(event, obj, g) {
     }
 }
 
+function isPointOnLineSegment(a, b, c) {
+    //line [a,b] point c
+    return distance(a, c) + distance(b, c) == distance(a, b);
+}
+function distance(a, b) {
+    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+}
+function pointSegment(line, point) {
+    let matches = []
+    for (let i = 1; i < line.nodes.length; i++) {
+        const curr = idToNode(line.nodes[i])
+        const prev = idToNode(line.nodes[i - 1])
+        if (isPointOnLineSegment(curr, prev, point)) matches.push(i - 1)
+    }
+    return matches
+}
+
 start()
+load()

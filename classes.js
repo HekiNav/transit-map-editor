@@ -6,8 +6,8 @@ class Node {
         this.id = id
         this.active = true
         this.selected = false
-        this.hovering = false
     }
+
 }
 class Stop extends Node {
     constructor(x, y, name, id) {
