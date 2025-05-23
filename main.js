@@ -193,20 +193,31 @@ function start() {
             case "line":
                 if (!mapData.lines[0]) {
                     mapData.lines.push({
-                        id: 1,
+                        id: "id_1",
+                        name: "testLine",
+                        color: "blue",
                         nodes: []
                     })
-                    selectedLine = 1
+                    selectedLine = "id_1"
                 }
                 const pos = snappedMouse(e, g)
 
-                const node = new Node(pos.x, pos.y)
-                idToLine(selectedLine).nodes.forEach(n => idToNode(n).active = false)
 
+                const index = idToLine(selectedLine).nodes.findIndex(n => idToNode(n).active)
 
-                mapData.nodes[node.id] = node
-                idToLine(selectedLine).nodes.push(node.id)
-                renderMap()
+                console.log(index, idToLine(selectedLine).nodes.filter(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x))
+
+                if (idToLine(selectedLine).nodes.some(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x)) {
+                    Object.values(mapData.nodes).forEach(n => n.active = false)
+                    idToLine(selectedLine).nodes.filter(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x).forEach(n => idToNode(n).active = true)
+                    renderMap()
+                } else if (index  >= 0 || idToLine(selectedLine).nodes.length == 0) {
+                    Object.values(mapData.nodes).forEach(n => n.active = false)
+                    const node = new Node(pos.x, pos.y)
+                    mapData.nodes[node.id] = node
+                    idToLine(selectedLine).nodes.splice(index, 0, node.id)
+                    renderMap()
+                }
                 break;
             case "station":
                 const mouse = snappedMouse(e, g)
@@ -218,7 +229,7 @@ function start() {
                 } else {
                     const segmentMatches = mapData.lines.map(l => ({ indexes: pointSegment(l, mouse), line: l }))
                     const newStop = new Stop(mouse.x, mouse.y, "TEST_GENERATED")
-                    mapData.nodes[newStop.id] = newStop 
+                    mapData.nodes[newStop.id] = newStop
                     segmentMatches.forEach(m => {
                         m.indexes.forEach(i => {
                             m.line.nodes.splice(i, 0, newStop.id)
@@ -282,8 +293,119 @@ function start() {
     })
     setMode(highLightDot, "move")
 }
+function updateUI() {
+    const lineContainer = document.getElementById("linesContainer")
+    const stationContainer = document.getElementById("stationContainer")
 
+    lineContainer.innerHTML = ""
+    stationContainer.innerHTML = ""
+
+    mapData.lines.forEach(l => {
+        lineContainer.innerHTML +=
+            `<li>
+                        <div class="card p-2">
+                            <div class="content">
+                                <nav class="level mb-0">
+                                    <div class="level-left">
+                                        <div class="level-item"><span class="color-circle" style="background: ${l.color}"></span></div>
+                                        <div class="level-item"><strong>${l.name}</strong></div>
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="level-item"><small>${l.id}</small></div>
+                                    </div>
+                                </nav>
+
+                                <br>
+                                <p>Progress</p>
+                                <div class="progress-wrapper">
+                                    <progress class="progress" value="15" max="100">15%</progress>
+                                    <p class="progress-value has-text-black">15%</p>
+                                </div>
+                            </div>
+                            <nav class="level is-mobile">
+                                <div class="level-left">
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-pencil"></i></span>
+                                    </div>
+                                    <div class="level-item p-1">
+                                        <span class="icon is-small"><i class="bi bi-eye"></i></span>
+                                    </div>
+                                </div>
+                            </nav>
+                        </div>
+                    </li>`
+
+        Object.values(mapData.nodes).filter(n => n.type == "stop").forEach(s => {
+            const lines = mapData.lines.filter(l => l.nodes.some(n => n == s.id))
+            console.log(lines)
+            let lineData = ""
+            lines.forEach(l => {
+                lineData +=
+                    `<div class="dropdown-content">
+                        <nav class="level mb-0 dropdown-item">
+                            <div class="level-left">
+                                <div class="level-item"><span class="color-circle" style="background: ${l.color}"></span></div>
+                                <div class="level-item"><strong>${l.name}</strong></div>
+                            </div>
+                            <div class="level-right">
+                                <div class="level-item"><small>${l.id}</small></div>
+                            </div>
+                        </nav>
+                    </div>`
+            })
+            stationContainer.innerHTML +=
+                `<li>
+                    <div class="card p-2">
+                        <div class="content">
+                            <nav class="level mb-0">
+                                <div class="level-left">
+                                    <div class="level-item"><strong>${s.name}</strong></div>
+                                </div>
+                                <div class="level-right">
+                                    <div class="level-item"><small>${s.id}</small></div>
+                                </div>
+                            </nav>
+                            <br>
+                            <div class="dropdown">
+                                <div class="dropdown-trigger">
+                                    <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                                        <span>Lines (${lines.length})</span>
+                                        <span class="icon is-small">
+                                            <i class="bi bi-caret-down-fill" aria-hidden="true"></i>
+                                        </span>
+                                    </button>
+                                </div>
+                                <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                                    ${lineData}
+                                </div>
+                            </div>
+                        </div>
+                        <nav class="level is-mobile">
+                            <div class="level-left">
+                                <div class="level-item p-1">
+                                    <span class="icon is-small"><i class="bi bi-pencil"></i></span>
+                                </div>
+                                <div class="level-item p-1">
+                                    <span class="icon is-small"><i class="bi bi-eye"></i></span>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                </li>`
+        })
+    })
+    for (let i = 0; i < stationContainer.children.length; i++) {
+        const child = stationContainer.children.item(i);
+        console.log(child)
+        var dropdown = child.querySelector('.dropdown');
+        dropdown.addEventListener('click', function (event) {
+            event.stopPropagation();
+            dropdown.classList.toggle('is-active');
+        });
+    }
+}
 function renderMap() {
+    updateUI()
     let existingLineIds = []
     let existingNodeIds = []
     $("g#map").children().each((i, l) => {
@@ -346,7 +468,8 @@ function renderNodes(line) {
     for (let i = 0; i < line.nodes.length; i++) {
         const curr = idToNode(line.nodes[i])
         const prev = idToNode(line.nodes[i - 1])
-        addNode({ x: curr.x, y: curr.y, color: color, fill: curr.fill })
+        const fill = curr.active ? "yellow" : curr.fill
+        addNode({ x: curr.x, y: curr.y, color: color, fill: fill })
 
         if (!prev) continue
         addNodeLine({ color: color, line: [curr, prev] })
