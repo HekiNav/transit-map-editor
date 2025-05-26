@@ -211,11 +211,16 @@ function start() {
                     Object.values(mapData.nodes).forEach(n => n.active = false)
                     idToLine(selectedLine).nodes.filter(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x).forEach(n => idToNode(n).active = true)
                     renderMap()
-                } else if (index  >= 0 || idToLine(selectedLine).nodes.length == 0) {
+                } else if (pointSegment(idToLine(selectedLine), pos).length) {
+                    console.log("a")
+                    console.log(pointSegment(idToLine(selectedLine), pos))
+                } else if (index >= 0 || idToLine(selectedLine).nodes.length == 0) {
                     Object.values(mapData.nodes).forEach(n => n.active = false)
-                    const node = new Node(pos.x, pos.y)
-                    mapData.nodes[node.id] = node
-                    idToLine(selectedLine).nodes.splice(index, 0, node.id)
+                    if (mode == "line") {
+                        const node = new Node(pos.x, pos.y)
+                        mapData.nodes[node.id] = node
+                        idToLine(selectedLine).nodes.splice(index, 0, node.id)
+                    }
                     renderMap()
                 }
                 break;
