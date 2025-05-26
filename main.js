@@ -207,13 +207,22 @@ function start() {
 
                 console.log(index, idToLine(selectedLine).nodes.filter(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x))
 
+                
                 if (idToLine(selectedLine).nodes.some(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x)) {
                     Object.values(mapData.nodes).forEach(n => n.active = false)
                     idToLine(selectedLine).nodes.filter(n => idToNode(n).y == pos.y && idToNode(n).x == pos.x).forEach(n => idToNode(n).active = true)
                     renderMap()
                 } else if (pointSegment(idToLine(selectedLine), pos).length) {
-                    console.log("a")
-                    console.log(pointSegment(idToLine(selectedLine), pos))
+                    Object.values(mapData.nodes).forEach(n => n.active = false)
+                    const matches = pointSegment(idToLine(selectedLine), pos)
+                    console.log(matches)
+                    matches.forEach(i => {
+                        console.log(i, idToNode(idToLine(selectedLine).nodes[i])) 
+                        idToNode(idToLine(selectedLine).nodes[i]).active = true
+                        idToNode(idToLine(selectedLine).nodes[i+1]).active = true
+                    })
+                    renderMap()
+
                 } else if (index >= 0 || idToLine(selectedLine).nodes.length == 0) {
                     Object.values(mapData.nodes).forEach(n => n.active = false)
                     if (mode == "line") {
