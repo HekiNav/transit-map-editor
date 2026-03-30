@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+body {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+#app {
+  height: 100vh;
+}
