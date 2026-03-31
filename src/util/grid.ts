@@ -1,27 +1,25 @@
 import type { Box } from "@svgdotjs/svg.js";
 import { Rect } from "@svgdotjs/svg.js";
-import type { Svg } from "@svgdotjs/svg.js";
 import { Pattern } from "@svgdotjs/svg.js";
 import { elementSize } from "./html";
 
 export class Grid {
-    #element: Rect;
+    element: Rect;
     #pattern: Pattern;
     #size: number;
-    constructor(svg: Svg, size = 100, minorLines = 5) {
-        this.#element = svg.rect(0, 0)
-        this.#element.addTo(svg).opacity(0.7)
+    constructor(size = 100, minorLines = 5) {
+        this.element = svg.rect(0, 0).addClass("grid").addClass("ns")
+        this.element.addTo(svg).opacity(0.7)
         this.#size = size
         this.#pattern = svg.pattern(size, size, (p) => {
             for (let i = 1 / minorLines; i < 1; i += 1 / minorLines) {
                 const offset = i * size;
-                console.log(offset)
                 p.line([offset, 0, offset, size]).stroke({ width: 0, color: "#777" }).id("minorGridLine")
                 p.line([0, offset, size, offset]).stroke({ width: 0, color: "#777" }).id("minorGridLine")
             }
             p.rect(size, size).fill("none").stroke({ width: 0, color: "#000" })
         })
-        this.#element.fill(this.#pattern)
+        this.element.fill(this.#pattern)
 
         const observer = new MutationObserver(() => {
             this.#updateToViewBox(svg.viewbox())
@@ -47,8 +45,8 @@ export class Grid {
             }
         })
         const gridBoxSize = scale * 2
-        this.#element.size(gridBoxSize * size.width, gridBoxSize * size.height)
-        this.#element.attr({
+        this.element.size(gridBoxSize * size.width, gridBoxSize * size.height)
+        this.element.attr({
             transform: `translate(${Math.floor((box.cx - size.width * scale) / this.#size) * this.#size} ${Math.floor((box.cy - size.height * scale) / this.#size) * this.#size})`
         })
     }
