@@ -7,10 +7,12 @@ export class Grid {
     element: Rect;
     #pattern: Pattern;
     #size: number;
-    constructor(size = 100, minorLines = 5) {
+    #minorLines: number;
+    constructor(size = 100, minorLines = 10) {
         this.element = svg.rect(0, 0).addClass("grid").addClass("ns")
         this.element.addTo(svg).opacity(0.7)
         this.#size = size
+        this.#minorLines = minorLines
         this.#pattern = svg.pattern(size, size, (p) => {
             for (let i = 1 / minorLines; i < 1; i += 1 / minorLines) {
                 const offset = i * size;
@@ -21,7 +23,9 @@ export class Grid {
         })
         this.element.fill(this.#pattern)
 
-        const observer = new MutationObserver(() => {
+        const observer = new MutationObserver((changes) => {
+            svg.fire("zoom")
+            if (changes[0].attributeName?.includes("data-")) return
             this.#updateToViewBox(svg.viewbox())
         })
         observer.observe(svg.node, {
@@ -33,8 +37,10 @@ export class Grid {
     #updateToViewBox(box: Box) {
         const size = elementSize("#map")
         const scale = box.w / size.width
+        svg.data("scale", scale)
         const minorLinesShown = scale <= 1.7
         const majorLinesShown = scale <= 10
+        minorLinesShown ? svg.data("grid", this.#size / this.#minorLines) : svg.data("grid", this.#size)
         this.#pattern.children().forEach(c => {
             if (c.id() == "minorGridLine") {
                 c.stroke({ width: 2 * scale })
