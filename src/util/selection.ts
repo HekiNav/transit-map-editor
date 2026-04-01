@@ -1,5 +1,4 @@
 import type { ArrayXY } from "@svgdotjs/svg.js"
-import { Rect } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
 const selectedElements: Element[] = []

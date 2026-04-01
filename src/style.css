@@ -11,3 +11,11 @@ body {
 .grid {
   pointer-events: none;
 }
+
+button {
+  cursor: pointer;
+}
+
+input {
+  width: 100%;
+}

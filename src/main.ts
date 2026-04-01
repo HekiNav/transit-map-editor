@@ -6,32 +6,19 @@ Object.defineProperty(window, "svg", {
 })
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'
+import "toastify-js/src/toastify.css"
 import { elementSize } from './util/html'
 import { Grid } from './util/grid'
 import { BasicCircleShape } from './shapes/basic'
-import { clearSelection, getSelection } from './util/selection'
+import { clearSelection } from './util/selection'
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
+import { initListeners } from "./util/gtfs"
 
 declare global {
     const svg: Svg
 }
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-    <div class="w-full h-full flex">
-        <div class="sidebar w-80 border-r-3 h-full p-4">
-            <h1 class="text-xl">
-                Transit map editor
-            </h1>
-        </div>
-        <div class="grow w-full h-full overflow-hidden relative" id="map">
-            <div class="absolute top-4 left-4 flex flex-col gap-2">
-                <div class="mode-button w-12 h-12 flex items-center justify-center bg-white rounded border-2 cursor-pointer" data-mode="move">Move</div>
-                <div class="mode-button w-12 h-12 flex items-center justify-center bg-white rounded border-2 cursor-pointer" data-mode="draw">Draw</div>
-            </div>
-        </div>
-    </div>
-    `
 export const PAN_ZOOM_OPTIONS = {
     zoomFactor: 0.5,
     zoomMax: 10,
@@ -56,6 +43,10 @@ new Grid()
 
 document.querySelectorAll(".mode-button").forEach((el) => {
     el.addEventListener("click", () => setMode(el.getAttribute("data-mode") || "move"))
+})
+
+document.addEventListener("DOMContentLoaded", () => {
+    initListeners()
 })
 
 svg.on("mode", () => {

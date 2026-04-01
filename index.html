@@ -1,14 +1,55 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>transit-map-editor</title>
-  </head>
-  <body>
-    <div id="app">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>transit-map-editor</title>
+</head>
+
+<body>
+  <div id="app">
+    <div class="w-full h-full flex">
+      <div class="sidebar w-80 border-r-3 h-full p-4">
+        <h1 class="text-xl font-bold">
+          Transit map editor
+        </h1>
+        <h2 class="text-lg">
+          GTFS Import
+        </h2>
+        <div class="flex flex-row gap-1 mb-1">
+          <label for="gtfs-url">Url:</label>
+          <input type="url" name="gtfs-url" id="gtfs-url" class="border-2 rounded">
+          <button class="border-2 rounded" id="gtfs-url-load">Load</button>
+        </div>
+        <div class="flex flex-row gap-1 w-full flex-nowrap w-full mb-1">
+          <label>File:</label>
+          <label for="gtfs-file" class="grow border-2 rounded cursor-pointer">
+            <input hidden type="file" name="gtfs-file" accept=".zip" id="gtfs-file" class="border-2 rounded shrink">
+            <span id="gtfs-file-name" class="">No file</span>
+          </label>
+          <button class="border-2 rounded" id="gtfs-file-load">Load</button>
+        </div>
+        <div class="flex flex-row gap-1 w-full flex-nowrap w-full">
+          <label>Saved:</label>
+          <span id="gtfs-saved-name" class="grow border-2 rounded cursor-pointer">Not found</span>
+          <button class="border-2 rounded" id="gtfs-saved-clear">Clear</button>
+          <button class="border-2 rounded" id="gtfs-saved-load">Load</button>
+        </div>
+        <output class="text-red-500" id="gtfs-error"></output>
+      </div>
+      <div class="grow w-full h-full overflow-hidden relative" id="map">
+        <div class="absolute top-4 left-4 flex flex-col gap-2">
+          <div class="mode-button w-12 h-12 flex items-center justify-center bg-white rounded border-2 cursor-pointer"
+            data-mode="move">Move</div>
+          <div class="mode-button w-12 h-12 flex items-center justify-center bg-white rounded border-2 cursor-pointer"
+            data-mode="draw">Draw</div>
+        </div>
+      </div>
     </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
