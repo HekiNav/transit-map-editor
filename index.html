@@ -31,13 +31,17 @@
           </label>
           <button class="border-2 rounded" id="gtfs-file-load">Load</button>
         </div>
-        <div class="flex flex-row gap-1 w-full flex-nowrap w-full">
-          <label>Saved:</label>
-          <span id="gtfs-saved-name" class="grow border-2 rounded cursor-pointer">Not found</span>
-          <button class="border-2 rounded" id="gtfs-saved-clear">Clear</button>
-          <button class="border-2 rounded" id="gtfs-saved-load">Load</button>
-        </div>
         <output class="text-red-500" id="gtfs-error"></output>
+        <h2 class="text-lg">
+          Loaded GTFS
+        </h2>
+        <div id="gtfs-facts">
+          <div>Feed: <span id="gtfs-feed"></span></div>
+          <div>Import Time: <span id="gtfs-time"></span></div>
+          <div>Routes: <span id="gtfs-routes"></span></div>
+          <div>Stops: <span id="gtfs-stops"></span></div>
+          <div>Trips: <span id="gtfs-trips"></span></div>
+        </div>
       </div>
       <div class="grow w-full h-full overflow-hidden relative" id="map">
         <div class="absolute top-4 left-4 flex flex-col gap-2">
