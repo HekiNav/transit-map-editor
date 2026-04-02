@@ -77,6 +77,7 @@ export class UndoSystem {
         })
         this.#redoStack.length = 0
         this.#pendingChanges.length = 0
+        svg.fire("history")
     }
     undo(): ChangeData | null {
         const step = this.#undoStack.pop()
@@ -90,6 +91,8 @@ export class UndoSystem {
         }
 
         this.#redoStack.push(step)
+        svg.fire("update")
+        svg.fire("history")
         return step.data
     }
 
@@ -105,6 +108,8 @@ export class UndoSystem {
         }
 
         this.#undoStack.push(step)
+        svg.fire("update")
+        svg.fire("history")
         return step.data
     }
 
@@ -115,8 +120,8 @@ export class UndoSystem {
         return this.#redoStack.length > 0
     }
 
-    get history(): ChangeData[] {
-        return this.#undoStack.map((s) => s.data)
+    get history(): { undo: ChangeData[], redo: ChangeData[] } {
+        return { undo: this.#undoStack.map((s) => s.data), redo: this.#redoStack.map(s => s.data) }
     }
     clear(): void {
         this.#undoStack = []

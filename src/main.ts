@@ -24,7 +24,10 @@ import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
 import type { options } from '@svgdotjs/svg.panzoom.js'
-import { UndoSystem } from "./util/undo"
+import { UndoSystem, type ChangeData } from "./util/undo"
+
+const previousEdits = document.querySelector("#previous-edits")!
+const futureEdits = document.querySelector("#future-edits")!
 
 export const PAN_ZOOM_OPTIONS: options = {
     zoomFactor: 0.5,
@@ -54,6 +57,7 @@ document.querySelectorAll(".mode-button").forEach((el) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     initListeners()
+    updateHistory()
 
     new BasicCircleShape({ r: 20, x: 100, y: 0 })
     new BasicCircleShape({ r: 20, x: 100, y: 0 })
@@ -61,6 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
         undo.logChange("Initted test view")
     }, 100)
+
+    svg.on("history", updateHistory)
 })
 
 svg.on("mode", () => {
@@ -83,4 +89,31 @@ window.addEventListener("keyup", (e) => {
     if ((e as KeyboardEvent).code == "Escape") setMode("move")
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")
+    if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
+        clearSelection()
+        if (e.shiftKey) {
+            const change = undo.redo()
+            if (change) console.log('Redid:', change.label)
+        } else {
+            const change = undo.undo()
+            if (change) console.log('Undid:', change.label)
+        }
+        e.preventDefault()
+    }
 })
+
+function updateHistory() {
+    const history = undo.history
+
+    previousEdits.innerHTML = ""
+    futureEdits.innerHTML = ""
+
+    history.undo.forEach(c => previousEdits.innerHTML += html(c))
+    history.redo.reverse().forEach(c => futureEdits.innerHTML += html(c))
+
+    previousEdits.scrollBy({ top: Math.pow(2, 53) })
+
+    function html(c: ChangeData) {
+        return `<div class="">${c.label}</div>`
+    }
+}

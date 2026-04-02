@@ -79,7 +79,7 @@ window.addEventListener("DOMContentLoaded", () => {
             svg.panZoom(PAN_ZOOM_OPTIONS)
             svg.data('panZoomEnabled', true)
         }
-        if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length}`)
+        if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`)
         movingElements = []
         setTimeout(() => svg.data("moving", false),1)
     })
