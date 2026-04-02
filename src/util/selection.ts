@@ -75,11 +75,12 @@ export function reloadBBs() {
 
 window.addEventListener("DOMContentLoaded", () => {
     svg.on("mouseup", () => {
-        movingElements = []
         if (!svg.data('panZoomEnabled')) {
             svg.panZoom(PAN_ZOOM_OPTIONS)
             svg.data('panZoomEnabled', true)
         }
+        undo.logChange(`Moved ${movingElements.length}`)
+        movingElements = []
         setTimeout(() => svg.data("moving", false),1)
     })
     svg.on("mousemove", (ev) => {

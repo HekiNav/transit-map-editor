@@ -4,9 +4,14 @@ Object.defineProperty(window, "svg", {
     value: SVG(),
     writable: false
 })
+Object.defineProperty(window, "undo", {
+    value: new UndoSystem(),
+    writable: false
+})
 
 declare global {
     const svg: Svg
+    const undo: UndoSystem
 }
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'
@@ -19,7 +24,7 @@ import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
 import type { options } from '@svgdotjs/svg.panzoom.js'
-import { initUndo } from "./util/undo"
+import { UndoSystem } from "./util/undo"
 
 export const PAN_ZOOM_OPTIONS: options = {
     zoomFactor: 0.5,
@@ -40,9 +45,7 @@ window.addEventListener("resize", () => {
 })
 
 
-
-new BasicCircleShape({ r: 20, x: 100, y: 0 })
-new StopShape({ x: 200, y: 0, w: 10, h: 50 })
+// create example
 new Grid()
 
 document.querySelectorAll(".mode-button").forEach((el) => {
@@ -51,7 +54,11 @@ document.querySelectorAll(".mode-button").forEach((el) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     initListeners()
-    initUndo()
+
+    new BasicCircleShape({ r: 20, x: 100, y: 0 })
+    new BasicCircleShape({ r: 20, x: 100, y: 0 })
+    new StopShape({ x: 200, y: 0, w: 10, h: 50 })
+    undo.logChange("Initted test view")
 })
 
 svg.on("mode", () => {
