@@ -113,6 +113,7 @@ export class SelectionIndicator {
         }
         this.element = svg.rect()
             .addClass("ns")
+            .addClass("nu")
             .addTo(el)
             .size(bb.w, bb.h)
             .center(bb.cx, bb.cy)

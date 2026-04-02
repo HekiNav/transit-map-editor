@@ -4,6 +4,10 @@ Object.defineProperty(window, "svg", {
     value: SVG(),
     writable: false
 })
+
+declare global {
+    const svg: Svg
+}
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'
 import "toastify-js/src/toastify.css"
@@ -15,10 +19,7 @@ import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
 import type { options } from '@svgdotjs/svg.panzoom.js'
-
-declare global {
-    const svg: Svg
-}
+import { initUndo } from "./util/undo"
 
 export const PAN_ZOOM_OPTIONS: options = {
     zoomFactor: 0.5,
@@ -50,6 +51,7 @@ document.querySelectorAll(".mode-button").forEach((el) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     initListeners()
+    initUndo()
 })
 
 svg.on("mode", () => {

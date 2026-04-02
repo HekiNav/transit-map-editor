@@ -9,17 +9,17 @@ export class Grid {
     #size: number;
     #minorLines: number;
     constructor(size = 100, minorLines = 10) {
-        this.element = svg.rect(0, 0).addClass("grid").addClass("ns")
+        this.element = svg.rect(0, 0).addClass("grid").addClass("ns").addClass("nu")
         this.element.addTo(svg).opacity(0.7)
         this.#size = size
         this.#minorLines = minorLines
         this.#pattern = svg.pattern(size, size, (p) => {
             for (let i = 1 / minorLines; i < 1; i += 1 / minorLines) {
                 const offset = i * size;
-                p.line([offset, 0, offset, size]).stroke({ width: 0, color: "#777" }).id("minorGridLine")
-                p.line([0, offset, size, offset]).stroke({ width: 0, color: "#777" }).id("minorGridLine")
+                p.line([offset, 0, offset, size]).stroke({ width: 0, color: "#777" }).id("minorGridLine").addClass("nu")
+                p.line([0, offset, size, offset]).stroke({ width: 0, color: "#777" }).id("minorGridLine").addClass("nu")
             }
-            p.rect(size, size).fill("none").stroke({ width: 0, color: "#000" })
+            p.rect(size, size).fill("none").stroke({ width: 0, color: "#000" }).addClass("nu").id("majorGridLine")
         })
         this.element.fill(this.#pattern)
 
