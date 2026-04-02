@@ -14,12 +14,13 @@ import { clearSelection } from './util/selection'
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
+import type { options } from '@svgdotjs/svg.panzoom.js'
 
 declare global {
     const svg: Svg
 }
 
-export const PAN_ZOOM_OPTIONS = {
+export const PAN_ZOOM_OPTIONS: options = {
     zoomFactor: 0.5,
     zoomMax: 10,
     zoomMin: 0.05,
@@ -29,6 +30,8 @@ svg.addTo("#map")
     .size(...elementSize("#map").toSizeArr())
     .viewbox(elementSize("#map").toViewbox(0, 0))
     .panZoom(PAN_ZOOM_OPTIONS)
+
+svg.data('panZoomEnabled', true)
 
 
 window.addEventListener("resize", () => {
@@ -53,7 +56,6 @@ svg.on("mode", () => {
     const mode = svg.data("mode")
     clearSelection()
     svg.attr("style", mode == "draw" ? "cursor: crosshair" : "")
-    console.log("ujjj")
 })
 
 export function setMode(m: string) {
@@ -61,13 +63,12 @@ export function setMode(m: string) {
     svg.fire("mode")
 }
 
-svg.on("mouseup", (e) => {
-    if (!(e as MouseEvent).shiftKey && !svg.data("moving")) {
+svg.on("click", (e) => {
+    if (!(e as MouseEvent).shiftKey && !svg.data("moving") && e.target == svg.node) {
         clearSelection()
     }
 })
 window.addEventListener("keyup", (e) => {
-    console.log((e as KeyboardEvent).code)
     if ((e as KeyboardEvent).code == "Escape") setMode("move")
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")

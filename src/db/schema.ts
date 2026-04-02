@@ -76,6 +76,24 @@ export const trips = sqliteTable('trips', {
     ],
 )
 
+export const stopTimes = sqliteTable('stop_times', {
+    trip_id: text().notNull(),
+    stop_id: text().notNull(),
+    stop_sequence: integer().notNull(),
+    arrival_time: text(),
+    departure_time: text(),
+    stop_headsign: text(),
+    pickup_type: integer().default(0),
+    drop_off_type: integer().default(0),
+    shape_dist_traveled: real(),
+    timepoint: integer(),
+},
+    (t) => [
+        index('stop_times_trip_id_idx').on(t.trip_id),
+        index('stop_times_stop_id_idx').on(t.stop_id),
+    ],
+)
+
 export const importMeta = sqliteTable('import_meta', {
     id: integer().primaryKey({ autoIncrement: true }),
     feed_name: text(),
@@ -88,6 +106,7 @@ export const importMeta = sqliteTable('import_meta', {
 })
 
 export type Stop = typeof stops.$inferSelect
+export type StopTime = typeof stopTimes.$inferSelect
 export type Route = typeof routes.$inferSelect
 export type Agency = typeof agencies.$inferSelect
 export type Shape = typeof shapes.$inferSelect

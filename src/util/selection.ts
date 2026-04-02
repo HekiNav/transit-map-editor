@@ -1,11 +1,40 @@
 import type { ArrayXY } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
-const selectedElements: Element[] = []
+import type { SelectableShape } from "./shape"
+const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
 
 let movingElements: { e: Element, offset: ArrayXY }[] = []
+
+const selectionCont = document.querySelector("#selection")!
+
+window.addEventListener("DOMContentLoaded", async () => {
+    const { StopShape } = await import("../shapes/stop")
+    const { BasicCircleShape } = await import("../shapes/basic")
+
+    svg.on("select update", () => {
+        const selection = getSelection()
+        if (selection.length == 0) {
+            selectionCont.innerHTML = "No selection"
+        } else if (selection.length > 1) {
+            selectionCont.innerHTML = `${selection.length} selections`
+        } else {
+            const selected = selection[0]
+            if (selected instanceof StopShape) {
+                selectionCont.innerHTML = `
+                <div>
+                    <span class="font-bold">Stop</span>
+                    <div id="stop-search"></div>
+                </div>
+                `
+            } else if (selected instanceof BasicCircleShape) {
+                selectionCont.innerHTML = "Circle"
+            }
+        }
+    })
+})
 
 export function getSelection() {
     return selectedElements
@@ -13,16 +42,18 @@ export function getSelection() {
 
 export function clearSelection() {
     selectedElements.length = 0
+    svg.fire("select")
     reloadBBs()
 }
 
-export function select(el: Element, reset = true, value?: boolean) {
+// fired on click of elements
+export function select(el: SelectableShape, reset = true, value?: boolean) {
 
     if (reset) {
         selectedElements.length = 0
     }
 
-    const index = selectedElements.findIndex(e => e == el)
+    const index = selectedElements.findIndex(e => e.element == el.element)
     if (index >= 0 && (value == false || value == undefined)) {
         selectedElements.splice(index, 1)
     } else if (index == -1 && (value == true || value == undefined)) {
@@ -30,22 +61,29 @@ export function select(el: Element, reset = true, value?: boolean) {
     }
 
     reloadBBs()
+    svg.fire("select")
 }
 
+// reload bounding boxes
 export function reloadBBs() {
     selectionIndicators.forEach(el => el.element.remove())
 
     selectedElements.forEach(el => {
-        selectionIndicators.push(new SelectionIndicator(el))
+        selectionIndicators.push(new SelectionIndicator(el.element))
     })
 }
+
 window.addEventListener("DOMContentLoaded", () => {
     svg.on("mouseup", () => {
         movingElements = []
-        svg.data("moving", false)
-        svg.panZoom(PAN_ZOOM_OPTIONS)
+        if (!svg.data('panZoomEnabled')) {
+            svg.panZoom(PAN_ZOOM_OPTIONS)
+            svg.data('panZoomEnabled', true)
+        }
+        setTimeout(() => svg.data("moving", false),1)
     })
     svg.on("mousemove", (ev) => {
+        if (movingElements.length) svg.data("moving", true)
         movingElements.forEach(({ e, offset }) => {
             const grid: number = svg.data("grid") || 1
             const scale: number = (svg.data("scale") || 1)
@@ -63,14 +101,13 @@ export class SelectionIndicator {
         const bb = el.bbox()
         const setMovingElements = (ev: Event): void => {
             const scale: number = (svg.data("scale") || 1)
-            svg.data("moving", true)
             svg.panZoom(false)
-            console.log(scale)
+            svg.data('panZoomEnabled', false)
             movingElements = selectedElements.map(e => ({
-                e,
+                e: e.element,
                 offset: [
-                    e.cx() / scale - (ev as MouseEvent).offsetX,
-                    e.cy() / scale - (ev as MouseEvent).offsetY
+                    e.element.cx() / scale - (ev as MouseEvent).offsetX,
+                    e.element.cy() / scale - (ev as MouseEvent).offsetY
                 ]
             }))
         }

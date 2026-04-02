@@ -2,21 +2,23 @@ import { Element } from "@svgdotjs/svg.js"
 import { getSelection, select } from "./selection";
 import { G } from "@svgdotjs/svg.js";
 import type { ArrayXY } from "@svgdotjs/svg.js";
+
 export class SelectableShape {
     element: Element;
     constructor(el: Element, selected = false) {
         this.element = svg.group()
-        .add(el)
-        if (selected) select(this.element)
+            .add(el)
+        if (selected) select(this)
         this.element.on("click", (e) => {
-            select(this.element, !(e as MouseEvent).shiftKey)
+            if (svg.data("moving")) return 
+            select(this, !(e as MouseEvent).shiftKey)
         })
     }
     get selected() {
-        return getSelection().some(el => el == this.element)
+        return getSelection().some(el => el.element == this.element)
     }
     set selected(new_sel) {
-        select(this.element, new_sel)
+        select(this, new_sel)
     }
 }
 export class Arrow {
@@ -28,9 +30,9 @@ export class Arrow {
         )
     }
     get selected() {
-        return getSelection().some(el => el == this.element)
+        return getSelection().some(el => el.element == this.element)
     }
     set selected(new_sel) {
-        select(this.element, new_sel)
+        select(this, new_sel)
     }
 }

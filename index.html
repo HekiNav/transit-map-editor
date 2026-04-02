@@ -11,36 +11,45 @@
 <body>
   <div id="app">
     <div class="w-full h-full flex">
-      <div class="sidebar w-80 border-r-3 h-full p-4">
+      <div class="sidebar w-80 border-r-3 h-full p-4 overflow-y-scroll">
         <h1 class="text-xl font-bold">
           Transit map editor
         </h1>
-        <h2 class="text-lg">
-          GTFS Import
+        <details>
+          <summary class="text-lg font-medium">
+            GTFS Import
+          </summary>
+          <div class="flex flex-row gap-1 mb-1">
+            <label for="gtfs-url">Url:</label>
+            <input type="url" name="gtfs-url" id="gtfs-url" class="border-2 rounded">
+            <button class="border-2 rounded" id="gtfs-url-load">Load</button>
+          </div>
+          <div class="flex flex-row gap-1 w-full flex-nowrap w-full mb-1">
+            <label>File:</label>
+            <label for="gtfs-file" class="grow border-2 rounded cursor-pointer">
+              <input hidden type="file" name="gtfs-file" accept=".zip" id="gtfs-file" class="border-2 rounded shrink">
+              <span id="gtfs-file-name" class="">No file</span>
+            </label>
+            <button class="border-2 rounded" id="gtfs-file-load">Load</button>
+          </div>
+          <output class="text-red-500" id="gtfs-error"></output>
+          <h2 class="text-lg font-bold">
+            Loaded GTFS
+          </h2>
+          <div id="gtfs-facts">
+            <div>Feed: <span id="gtfs-feed"></span></div>
+            <div>Import Time: <span id="gtfs-time"></span></div>
+            <div>Routes: <span id="gtfs-routes"></span></div>
+            <div>Stops: <span id="gtfs-stops"></span></div>
+            <div>Trips: <span id="gtfs-trips"></span></div>
+          </div>
+        </details>
+
+        <h2 class="text-lg font-bold">
+          Selection
         </h2>
-        <div class="flex flex-row gap-1 mb-1">
-          <label for="gtfs-url">Url:</label>
-          <input type="url" name="gtfs-url" id="gtfs-url" class="border-2 rounded">
-          <button class="border-2 rounded" id="gtfs-url-load">Load</button>
-        </div>
-        <div class="flex flex-row gap-1 w-full flex-nowrap w-full mb-1">
-          <label>File:</label>
-          <label for="gtfs-file" class="grow border-2 rounded cursor-pointer">
-            <input hidden type="file" name="gtfs-file" accept=".zip" id="gtfs-file" class="border-2 rounded shrink">
-            <span id="gtfs-file-name" class="">No file</span>
-          </label>
-          <button class="border-2 rounded" id="gtfs-file-load">Load</button>
-        </div>
-        <output class="text-red-500" id="gtfs-error"></output>
-        <h2 class="text-lg">
-          Loaded GTFS
-        </h2>
-        <div id="gtfs-facts">
-          <div>Feed: <span id="gtfs-feed"></span></div>
-          <div>Import Time: <span id="gtfs-time"></span></div>
-          <div>Routes: <span id="gtfs-routes"></span></div>
-          <div>Stops: <span id="gtfs-stops"></span></div>
-          <div>Trips: <span id="gtfs-trips"></span></div>
+        <div id="selection">
+
         </div>
       </div>
       <div class="grow w-full h-full overflow-hidden relative" id="map">

@@ -22,6 +22,7 @@
     "@tailwindcss/vite": "^4.2.2",
     "drizzle-orm": "^0.45.2",
     "jszip": "^3.10.1",
+    "minisearch": "^7.2.0",
     "papaparse": "^5.5.3",
     "sqlocal": "^0.17.0",
     "tailwindcss": "^4.2.2",
