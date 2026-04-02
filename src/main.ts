@@ -58,7 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
     new BasicCircleShape({ r: 20, x: 100, y: 0 })
     new BasicCircleShape({ r: 20, x: 100, y: 0 })
     new StopShape({ x: 200, y: 0, w: 10, h: 50 })
-    undo.logChange("Initted test view")
+    setTimeout(() => {
+        undo.logChange("Initted test view")
+    }, 100)
 })
 
 svg.on("mode", () => {
