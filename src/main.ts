@@ -25,6 +25,7 @@ import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
 import type { options } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
+import { save } from './util/save'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
@@ -85,7 +86,7 @@ svg.on("click", (e) => {
         clearSelection()
     }
 })
-window.addEventListener("keyup", (e) => {
+window.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).code == "Escape") setMode("move")
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")
@@ -98,6 +99,10 @@ window.addEventListener("keyup", (e) => {
             const change = undo.undo()
             if (change) console.log('Undid:', change.label)
         }
+        e.preventDefault()
+    }
+    if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
+        save()
         e.preventDefault()
     }
 })

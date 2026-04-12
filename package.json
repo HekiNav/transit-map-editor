@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/papaparse": "^5.5.2",
     "@types/toastify-js": "^1.12.4",
     "drizzle-kit": "^0.31.10",
@@ -21,6 +22,7 @@
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@tailwindcss/vite": "^4.2.2",
     "drizzle-orm": "^0.45.2",
+    "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "minisearch": "^7.2.0",
     "papaparse": "^5.5.3",
