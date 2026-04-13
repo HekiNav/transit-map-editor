@@ -13,6 +13,7 @@ const fileInputSubmit = document.querySelector("#gtfs-file-load")!
 const gtfsError = document.querySelector("#gtfs-error")!
 
 const gtfsFacts: HTMLDivElement = document.querySelector("#gtfs-facts")!
+const gtfsImport: HTMLDetailsElement = document.querySelector("#gtfs-import")!
 const gtfsFeed = document.querySelector("#gtfs-feed")!
 const gtfsTime = document.querySelector("#gtfs-time")!
 const gtfsRoutes = document.querySelector("#gtfs-routes")!
@@ -29,6 +30,7 @@ export const stopSearch = new MiniSearch<Stop>({
 })
 
 export async function initListeners() {
+    gtfsImport.open = true
     fileInputName.textContent = fileInput.files?.item(0) ? fileInput.files[0].name : "No file"
 
     fileInput.addEventListener("change", () => {
@@ -100,7 +102,12 @@ async function reloadGTFSFacts() {
     const facts = await db.query.importMeta.findFirst()
 
     gtfsFacts.hidden = !facts || !facts.feed_name
-    if (!facts || !facts.feed_name) return
+    if (!facts || !facts.feed_name) {
+        gtfsImport.open = true
+        return
+    }
+    gtfsImport.open = false
+
     gtfsFeed.textContent = facts.feed_name
     gtfsTime.textContent = new Date(facts.imported_at).toISOString()
     gtfsRoutes.textContent = String(facts.route_count)
@@ -135,15 +142,15 @@ async function parseGTFS(data: File) {
     await rawSql`DELETE FROM import_meta`
 
     const toast = Toastify({
-        duration: 1000000,
+        duration: 1000000000000,
         text: "Parsing data",
         className: "text-black! bg-white! border-2 border-black rounded! p-2!",
         style: { background: "white", "box-shadow": "none" }
     })
     toast.showToast()
-    log("Uzipping GTFS", 0)
-    function log(msg: string, prg: number) {
-        if (toast.toastElement) toast.toastElement.textContent = `Parsing data: ${msg} (${Math.round(prg * 100)})%`
+    log("Uzipping GTFS")
+    function log(msg: string, prg = -1) {
+        if (toast.toastElement) toast.toastElement.textContent = `Parsing data: ${msg} ${prg >= 0 ?`(${Math.round(prg * 100)})%`: ""}`
     }
     const zipper = new JSZip()
     try {
@@ -154,7 +161,7 @@ async function parseGTFS(data: File) {
 
     const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
     Promise.all(gtfsTables.map(([file, table], i) => {
-        log("Parsing tables: " + file, ((i - 1) / gtfsTables.length * 0.8) + 0.2)
+        log("Parsing tables: " + file)
         return importGTFSTable(zipper, file, table)
     })).then(async ([stopCount, routeCount, tripCount]) => {
         setTimeout(() => toast.hideToast(), 1000)
@@ -166,10 +173,10 @@ async function parseGTFS(data: File) {
             route_count: routeCount,
             trip_count: tripCount
         })
-        log("Processing data", 0.9)
+        log("Processing data")
         await reloadGTFSFacts()
         await reloadSearches()
-        log("Complete", 1)
+        log("Complete")
         console.timeEnd("GTFS-parse")
     }).catch((err) => {
         console.error(err)
@@ -183,11 +190,13 @@ async function importGTFSTable(zipper: JSZip, fileName: string, table: Parameter
         return 0
     }
     const text = await file.async("text")
-    const result = Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (h) => h.trim(),
-        transform: (v) => v.trim(),
+    const result = await new Promise<Papa.ParseResult<unknown>>(res => {
+        Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            worker: false,
+            complete: (results) => { res(results) },
+        })
     })
     await batchInsert(table, result as any)
     return result.data.length

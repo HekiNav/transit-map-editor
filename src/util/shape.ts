@@ -3,14 +3,23 @@ import { getSelection, select } from "./selection";
 import { G } from "@svgdotjs/svg.js";
 import type { ArrayXY } from "@svgdotjs/svg.js";
 
+export type ShapeType = "basic_circle" | "stop" | "route"
+
 export class SelectableShape {
     element: Element;
-    constructor(el: Element, selected = false) {
+    constructor(el: Element, id: string, type: ShapeType, selected = false) {
         this.element = svg.group()
             .add(el)
         if (selected) select(this)
+
+        this.element.data("type", type)
+        this.element.id(id)
+
+        if (!this.element.data("type")) console.warn("Element has no type: ", this.element.node)
+        if (!this.element.id()) console.warn("Element has no ID: ", this.element.node)
+
         this.element.on("click", (e) => {
-            if (svg.data("moving")) return 
+            if (svg.data("moving")) return
             select(this, !(e as MouseEvent).shiftKey)
         })
     }
