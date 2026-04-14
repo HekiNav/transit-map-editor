@@ -160,7 +160,7 @@ async function parseGTFS(data: File) {
     }
 
     const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
-    Promise.all(gtfsTables.map(([file, table], i) => {
+    Promise.all(gtfsTables.map(([file, table]) => {
         log("Parsing tables: " + file)
         return importGTFSTable(zipper, file, table)
     })).then(async ([stopCount, routeCount, tripCount]) => {

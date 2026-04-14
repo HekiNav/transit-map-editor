@@ -25,7 +25,7 @@ import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
 import type { options } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
-import { save } from './util/save'
+import { load, save } from './util/save'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
@@ -68,6 +68,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 100)
 
     svg.on("history", updateHistory)
+
+    document.getElementById("save")?.addEventListener("click", save)
+    document.getElementById("load")?.addEventListener("change", (e) => {
+        load(((e.target as HTMLInputElement).files as FileList)[0], undo)
+    })
 })
 
 svg.on("mode", () => {

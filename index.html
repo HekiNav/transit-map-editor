@@ -15,6 +15,12 @@
         <h1 class="text-xl font-bold">
           Transit map editor
         </h1>
+        <label for="save_load" class="relative">
+          <input type="file" name="load" id="save_load" accept=".svg"
+            class="opacity-0 absolute top-0 left-0 bottom-0 right-0">
+          <button class="px-1 border-2 rounded">Load save</button>
+        </label>
+        <button id="save" class="px-1 border-2 rounded">Save to file</button>
         <details id="gtfs-import">
           <summary class="text-lg font-medium">
             GTFS Import
