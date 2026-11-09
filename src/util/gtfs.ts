@@ -11,8 +11,10 @@ const fileInput: HTMLInputElement = document.querySelector("#gtfs-file")!
 const fileInputName = document.querySelector("#gtfs-file-name")!
 const fileInputSubmit = document.querySelector("#gtfs-file-load")!
 const gtfsError = document.querySelector("#gtfs-error")!
+const gtfsImports = document.querySelector("#gtfs-import-title")!
 
 const gtfsFacts: HTMLDivElement = document.querySelector("#gtfs-facts")!
+const gtfsNone: HTMLDivElement = document.querySelector("#gtfs-none")!
 const gtfsImport: HTMLDetailsElement = document.querySelector("#gtfs-import")!
 const gtfsFeed = document.querySelector("#gtfs-feed")!
 const gtfsTime = document.querySelector("#gtfs-time")!
@@ -101,12 +103,16 @@ export async function initListeners() {
 async function reloadGTFSFacts() {
     const facts = await db.query.importMeta.findFirst()
 
+
     gtfsFacts.hidden = !facts || !facts.feed_name
+    gtfsNone.hidden = !!facts && !!facts.feed_name
     if (!facts || !facts.feed_name) {
+        gtfsImports.textContent = "GTFS Import ❌"
         gtfsImport.open = true
         return
     }
     gtfsImport.open = false
+    gtfsImports.textContent = "GTFS Import ✔️"
 
     gtfsFeed.textContent = facts.feed_name
     gtfsTime.textContent = new Date(facts.imported_at).toISOString()
@@ -132,6 +138,7 @@ function error(msg: string) {
     gtfsError.textContent = msg
 }
 async function parseGTFS(data: File) {
+    console.log("START")
     console.time("GTFS-parse")
     // clear db
     await rawSql`DELETE FROM shapes`
@@ -147,41 +154,45 @@ async function parseGTFS(data: File) {
         className: "text-black! bg-white! border-2 border-black rounded! p-2!",
         style: { background: "white", "box-shadow": "none" }
     })
+    console.log("hhdh")
+
     toast.showToast()
     log("Uzipping GTFS")
     function log(msg: string, prg = -1) {
-        if (toast.toastElement) toast.toastElement.textContent = `Parsing data: ${msg} ${prg >= 0 ?`(${Math.round(prg * 100)})%`: ""}`
+        if (toast.toastElement) toast.toastElement.textContent = `Parsing data: ${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}`
     }
     const zipper = new JSZip()
-    try {
-        await zipper.loadAsync(data)
-    } catch {
-        return error("Failed to unzip")
-    }
+    setTimeout(async () => {
 
-    const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
-    Promise.all(gtfsTables.map(([file, table]) => {
-        log("Parsing tables: " + file)
-        return importGTFSTable(zipper, file, table)
-    })).then(async ([stopCount, routeCount, tripCount]) => {
-        setTimeout(() => toast.hideToast(), 1000)
-        await db.insert(importMeta).values({
-            feed_name: data.name,
-            imported_at: Date.now(),
-            file_size_bytes: data.size,
-            stop_count: stopCount,
-            route_count: routeCount,
-            trip_count: tripCount
+        try {
+            await zipper.loadAsync(data)
+        } catch {
+            return error("Failed to unzip")
+        }
+
+        const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
+        Promise.all(gtfsTables.map(([file, table]) => {
+            log("Parsing tables: " + file)
+            return importGTFSTable(zipper, file, table)
+        })).then(async ([stopCount, routeCount, tripCount]) => {
+            await db.insert(importMeta).values({
+                feed_name: data.name,
+                imported_at: Date.now(),
+                file_size_bytes: data.size,
+                stop_count: stopCount,
+                route_count: routeCount,
+                trip_count: tripCount
+            })
+            log("Processing data")
+            await reloadGTFSFacts()
+            await reloadSearches()
+            log("Complete")
+            console.timeEnd("GTFS-parse")
+        }).catch((err) => {
+            console.error(err)
+            error(err)
         })
-        log("Processing data")
-        await reloadGTFSFacts()
-        await reloadSearches()
-        log("Complete")
-        console.timeEnd("GTFS-parse")
-    }).catch((err) => {
-        console.error(err)
-        error(err)
-    })
+    }, 1000)
 }
 async function importGTFSTable(zipper: JSZip, fileName: string, table: Parameters<typeof db.insert>[0]) {
     const file = zipper.file(fileName + ".txt") ?? zipper.file(fileName + ".csv")

@@ -22,7 +22,7 @@
         </label>
         <button id="save" class="px-1 border-2 rounded">Save to file</button>
         <details id="gtfs-import">
-          <summary class="text-lg font-medium">
+          <summary id="gtfs-import-title" class="text-lg font-medium">
             GTFS Import
           </summary>
           <div class="flex flex-row gap-1 mb-1">
@@ -42,7 +42,10 @@
           <h2 class="text-lg font-bold">
             Loaded GTFS
           </h2>
-          <div id="gtfs-facts">
+          <div id="gtfs-none">
+            No GTFS file loaded
+          </div>
+          <div id="gtfs-facts" hidden>
             <div>Feed: <span id="gtfs-feed"></span></div>
             <div>Import Time: <span id="gtfs-time"></span></div>
             <div>Routes: <span id="gtfs-routes"></span></div>

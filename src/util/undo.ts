@@ -59,7 +59,10 @@ export class UndoSystem {
         this.#observer.observe(svg.node, {
             attributes: true,
             childList: true,
-            subtree: true
+            subtree: true,
+            attributeOldValue: true,
+            characterDataOldValue: true,
+            characterData: true,
         })
     }
     logChange(label: string) {
@@ -110,6 +113,7 @@ export class UndoSystem {
         this.#undoStack.push(step)
         svg.fire("update")
         svg.fire("history")
+        console.log(this.#redoStack, this.#undoStack)
         return step.data
     }
 
@@ -134,7 +138,7 @@ function canMergeAttribute(p: AttributeChange, n: AttributeChange) {
     return (
         p.target === n.target &&
         p.name === n.name &&
-        p.newValue === n.oldValue
+        (p.newValue === n.oldValue || (p.newValue === n.newValue && p.oldValue === n.oldValue))
     )
 }
 function mergeAttribute(p: AttributeChange, n: AttributeChange): AttributeChange {
@@ -158,6 +162,7 @@ function mutationsToChanges(mutations: MutationRecord[]): AnyChange[] {
 
     mutations.forEach(m => {
         if (m.type == "attributes" && m.attributeName && m.target instanceof Element) {
+            console.log(m)
             changes.push({
                 type: "attribute",
                 name: m.attributeName,
@@ -214,7 +219,8 @@ function applyRedo(changes: AnyChange[]): void {
 }
 
 function applyUndo(changes: AnyChange[]): void {
-    changes.reverse().forEach((change) => {
+    [...changes].reverse().forEach((change) => {
+        console.log(change)
         if (change.type === 'attribute') {
             if (change.oldValue === null) {
                 change.target.removeAttribute(change.name)
@@ -238,8 +244,9 @@ function mergeChanges(changes: AnyChange[]): AnyChange[] {
         if (curr.type !== "attribute") return [...prev, curr]
         const lastIndex = prev.findLastIndex(c => c.type == "attribute" && c.name == curr.name && c.target == curr.target)
         if (lastIndex < 0) return [...prev, curr]
-        const last = prev.splice(lastIndex, 1)[0]
+        const last = prev.slice(lastIndex, lastIndex+1)[0]
         if (last.type !== 'attribute' || curr.type !== "attribute" || !canMergeAttribute(last, curr)) return [...prev, curr]
+        prev.splice(lastIndex, 1)[0]
         return [...prev, mergeAttribute(last, curr)]
     }, new Array<AnyChange>())
 }
