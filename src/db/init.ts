@@ -93,6 +93,23 @@ export async function initDb(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS shapes_shape_id_idx ON shapes (shape_id)`
 
   await sql`
+    CREATE TABLE IF NOT EXISTS stop_times (
+      trip_id             TEXT NOT NULL,
+      stop_id             TEXT NOT NULL,
+      stop_sequence       INTEGER NOT NULL,
+      arrival_time        TEXT,
+      departure_time      TEXT,
+      stop_headsign       TEXT,
+      pickup_type         INTEGER DEFAULT 0,
+      drop_off_type       INTEGER DEFAULT 0,
+      shape_dist_traveled REAL,
+      timepoint           INTEGER
+    )
+  `
+  await sql`CREATE INDEX IF NOT EXISTS stop_times_trip_id_idx ON stop_times (trip_id)`
+  await sql`CREATE INDEX IF NOT EXISTS stop_times_stop_id_idx ON stop_times (stop_id)`
+
+  await sql`
     CREATE TABLE IF NOT EXISTS import_meta (
       id               INTEGER PRIMARY KEY AUTOINCREMENT,
       feed_name        TEXT,

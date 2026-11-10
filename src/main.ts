@@ -92,6 +92,7 @@ svg.on("click", (e) => {
     }
 })
 window.addEventListener("keydown", (e) => {
+    if (e.target != document.body) return
     if ((e as KeyboardEvent).code == "Escape") setMode("move")
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")

@@ -24,11 +24,14 @@ const gtfsTrips = document.querySelector("#gtfs-trips")!
 
 export const routeSearch = new MiniSearch<Route>({
     fields: ["route_id", "route_short_name", "route_long_name", "route_desc"],
-    storeFields: ["agency_id", "route_type", "route_url", "route_color", "route_text_color", "route_sort_order", "continuous_pickup", "continuous_drop_off"]
+    storeFields: ["agency_id", "route_type", "route_url", "route_color", "route_text_color", "route_sort_order", "continuous_pickup", "continuous_drop_off", "route_id", "route_short_name", "route_long_name", "route_desc"],
+    idField: "route_id",
+
 })
 export const stopSearch = new MiniSearch<Stop>({
     fields: ["stop_id", "stop_code", "stop_name", "stop_desc"],
-    storeFields: ["stop_lat", "stop_lon", "zone_id", "stop_url", "location_type", "parent_station", "stop_timezone", "wheelchair_boarding", "platform_code", "level_id"]
+    storeFields: ["stop_lat", "stop_lon", "zone_id", "stop_url", "location_type", "parent_station", "stop_timezone", "wheelchair_boarding", "platform_code", "level_id", "stop_id", "stop_code", "stop_name", "stop_desc"],
+    idField: "stop_id"
 })
 
 export async function initListeners() {
@@ -122,10 +125,13 @@ async function reloadGTFSFacts() {
 }
 
 async function reloadSearches() {
+    stopSearch.removeAll()
+    routeSearch.removeAll()
     const stops = await db.query.stops.findMany()
     const routes = await db.query.routes.findMany()
     await stopSearch.addAllAsync(stops)
     await routeSearch.addAllAsync(routes)
+    console.log("SEARCHES INITTED", stops, routes)
 }
 
 function error(msg: string) {
@@ -149,50 +155,51 @@ async function parseGTFS(data: File) {
     await rawSql`DELETE FROM import_meta`
 
     const toast = Toastify({
-        duration: 1000000000000,
+        duration: 1000000000,
         text: "Parsing data",
         className: "text-black! bg-white! border-2 border-black rounded! p-2!",
         style: { background: "white", "box-shadow": "none" }
     })
+    toast.showToast()
+
     console.log("hhdh")
 
-    toast.showToast()
-    log("Uzipping GTFS")
+    log("Unzipping GTFS")
     function log(msg: string, prg = -1) {
-        if (toast.toastElement) toast.toastElement.textContent = `Parsing data: ${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}`
+        if (toast.toastElement) toast.toastElement.innerHTML += `${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}<br>`
     }
     const zipper = new JSZip()
-    setTimeout(async () => {
 
-        try {
-            await zipper.loadAsync(data)
-        } catch {
-            return error("Failed to unzip")
-        }
+    try {
+        await zipper.loadAsync(data)
+    } catch {
+        return error("Failed to unzip")
+    }
 
-        const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
-        Promise.all(gtfsTables.map(([file, table]) => {
-            log("Parsing tables: " + file)
-            return importGTFSTable(zipper, file, table)
-        })).then(async ([stopCount, routeCount, tripCount]) => {
-            await db.insert(importMeta).values({
-                feed_name: data.name,
-                imported_at: Date.now(),
-                file_size_bytes: data.size,
-                stop_count: stopCount,
-                route_count: routeCount,
-                trip_count: tripCount
-            })
-            log("Processing data")
-            await reloadGTFSFacts()
-            await reloadSearches()
-            log("Complete")
-            console.timeEnd("GTFS-parse")
-        }).catch((err) => {
-            console.error(err)
-            error(err)
+    const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
+    Promise.all(gtfsTables.map(async ([file, table]) => {
+        log("Starting table " + file)
+        const data = await importGTFSTable(zipper, file, table)
+        log("Finished table " + file)
+        return data
+    })).then(async ([stopCount, routeCount, tripCount]) => {
+        await db.insert(importMeta).values({
+            feed_name: data.name,
+            imported_at: Date.now(),
+            file_size_bytes: data.size,
+            stop_count: stopCount,
+            route_count: routeCount,
+            trip_count: tripCount
         })
-    }, 1000)
+        log("Processing data")
+        await reloadGTFSFacts()
+        await reloadSearches()
+        log("Complete")
+        console.timeEnd("GTFS-parse")
+    }).catch((err) => {
+        console.error(err)
+        error(err)
+    })
 }
 async function importGTFSTable(zipper: JSZip, fileName: string, table: Parameters<typeof db.insert>[0]) {
     const file = zipper.file(fileName + ".txt") ?? zipper.file(fileName + ".csv")
@@ -205,17 +212,52 @@ async function importGTFSTable(zipper: JSZip, fileName: string, table: Parameter
         Papa.parse(text, {
             header: true,
             skipEmptyLines: true,
-            worker: false,
+            worker: true,
             complete: (results) => { res(results) },
         })
     })
-    await batchInsert(table, result as any)
+    console.log(result.data.length)
+    await batchInsert(table, result.data as any)
+    console.log(result.data.length)
     return result.data.length
+}
+
+export function addSearch(type: "route" | "stop", container: string) {
+    const cont = document.querySelector(container)
+    if (!cont) return
+    const div = document.createElement("div")
+    div.classList.add("w-full", "border-2", "rounded", "p-1")
+
+    const input = document.createElement("input")
+    input.classList.add("w-full")
+    input.placeholder = "Search for " + type + "s"
+    div.appendChild(input)
+
+    const resultList = document.createElement("div")
+    resultList.classList.add("flex", "w-full", "gap-1", "flex-col")
+    div.appendChild(resultList)
+
+    input.addEventListener("input", e => {
+        const query = input.value
+        console.log(query)
+        if (query.length <= 2) {
+        } else {
+            const searcher = (type == "stop" ? stopSearch : routeSearch)
+            const results = searcher.search(query, {
+                fuzzy: 0.8,
+                prefix: true
+            })
+            console.log(results)
+        }
+    })
+
+    cont.appendChild(div)
 }
 
 const BATCH_SIZE = 500
 
 async function batchInsert<T extends Record<string, unknown>>(table: Parameters<typeof db.insert>[0], rows: T[]): Promise<void> {
+    console.log(table, rows.length)
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         await db.insert(table).values(rows.slice(i, i + BATCH_SIZE) as T[]).onConflictDoNothing()
     }

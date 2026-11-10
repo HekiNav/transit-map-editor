@@ -2,6 +2,7 @@ import type { ArrayXY } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
 import type { SelectableShape } from "./shape"
+import { addSearch } from "./gtfs"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -29,6 +30,7 @@ window.addEventListener("DOMContentLoaded", async () => {
                     <div id="stop-search"></div>
                 </div>
                 `
+                addSearch("stop", "#stop-search")
             } else if (selected instanceof BasicCircleShape) {
                 selectionCont.innerHTML = "Circle"
             }
