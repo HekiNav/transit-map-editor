@@ -16,7 +16,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/papaparse": "^5.5.2",
     "@types/toastify-js": "^1.12.4",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "1.0.0-rc.5",
     "typescript": "~5.9.3",
     "vite": "^8.0.1"
   },
@@ -25,7 +25,7 @@
     "@svgdotjs/svg.js": "^3.2.5",
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@tailwindcss/vite": "^4.2.2",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "1.0.0-rc.5",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "minisearch": "^7.2.0",

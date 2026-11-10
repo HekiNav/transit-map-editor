@@ -2,8 +2,9 @@ import Toastify from 'toastify-js'
 import JSZip from "jszip"
 import * as Papa from "papaparse"
 import { db, initDb, rawSql } from "../db/init"
-import { agencies, importMeta, routes, stops, stopTimes, trips, type Route, type Stop } from '../db/schema'
+import { agencies, importMeta, routes, stops, stopTimes, trips, type Pattern, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
 import MiniSearch from 'minisearch'
+import type { InferInsertModel } from 'drizzle-orm'
 
 const urlInput: HTMLInputElement = document.querySelector("#gtfs-url")!
 const urlInputSubmit = document.querySelector("#gtfs-url-load")!
@@ -143,6 +144,8 @@ function error(msg: string) {
     }).showToast()
     gtfsError.textContent = msg
 }
+const gtfsTables = [["stops", stops], ["routes", routes], ["agency", agencies]] as const
+
 async function parseGTFS(data: File) {
     console.log("START")
     console.time("GTFS-parse")
@@ -176,50 +179,67 @@ async function parseGTFS(data: File) {
         return error("Failed to unzip")
     }
 
-    const gtfsTables: [string, Parameters<typeof db.insert>[0]][] = [["stops", stops], ["routes", routes], ["trips", trips], ["agency", agencies], ["stop_times", stopTimes]]
-    Promise.all(gtfsTables.map(async ([file, table]) => {
+    const [stopData, routeData, agencyData] = await Promise.all(gtfsTables.map(async ([file, table]) => {
         log("Starting table " + file)
-        const data = await importGTFSTable(zipper, file, table)
+        const data = await ingestGTFSTable<typeof table>(await importGTFSTable<InferInsertModel<typeof table>>(zipper, file), table)
         log("Finished table " + file)
         return data
-    })).then(async ([stopCount, routeCount, tripCount]) => {
-        await db.insert(importMeta).values({
-            feed_name: data.name,
-            imported_at: Date.now(),
-            file_size_bytes: data.size,
-            stop_count: stopCount,
-            route_count: routeCount,
-            trip_count: tripCount
-        })
-        log("Processing data")
-        await reloadGTFSFacts()
-        await reloadSearches()
-        log("Complete")
-        console.timeEnd("GTFS-parse")
-    }).catch((err) => {
-        console.error(err)
-        error(err)
+    }))
+    const tripData = (await importGTFSTable<Trip>(zipper, "trips"))?.data
+    const stopTimeData = (await importGTFSTable<StopTime>(zipper, "stop_times"))?.data
+
+    if (stopData === null || routeData === null || agencyData === null || !tripData || !stopTimeData) return
+
+    console.log(tripData, routeData, stopData, stopTimeData)
+
+    await db.insert(importMeta).values({
+        feed_name: data.name,
+        imported_at: Date.now(),
+        file_size_bytes: data.size,
+        stop_count: stopData.length,
+        route_count: routeData.length,
+        trip_count: 0
     })
+
+    const patterns: Pattern[] = tripData.reduce<Pattern[]>((p,c) => {
+        const stops = stopTimeData.filter(s => s.trip_id == c.trip_id)
+        if (p.some(e => e)) return p
+        return p
+    }, new Array<Pattern>())
+
+    log("Processing data")
+    await reloadGTFSFacts()
+    await reloadSearches()
+    log("Complete")
+    console.timeEnd("GTFS-parse")
 }
-async function importGTFSTable(zipper: JSZip, fileName: string, table: Parameters<typeof db.insert>[0]) {
+async function importGTFSTable<T>(zipper: JSZip, fileName: string) {
     const file = zipper.file(fileName + ".txt") ?? zipper.file(fileName + ".csv")
     if (!file) {
         error(`Failed to parse ${fileName}`)
-        return 0
+        return null
     }
-    const text = await file.async("text")
-    const result = await new Promise<Papa.ParseResult<unknown>>(res => {
-        Papa.parse(text, {
-            header: true,
-            skipEmptyLines: true,
-            worker: true,
-            complete: (results) => { res(results) },
+    try {
+        const text = await file.async("text")
+        const result = await new Promise<Papa.ParseResult<T>>(res => {
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                worker: true,
+                complete: (results) => { res(results as Papa.ParseResult<T>) },
+            })
         })
-    })
-    console.log(result.data.length)
-    await batchInsert(table, result.data as any)
-    console.log(result.data.length)
-    return result.data.length
+        return result
+
+    } catch (err) {
+        error(String(err))
+        return null
+    }
+}
+async function ingestGTFSTable<T extends typeof gtfsTables[number][1]>(result: Papa.ParseResult<InferInsertModel<T>> | null, table: T) {
+    if (!result) return null
+    await batchInsert(table, result.data)
+    return result.data
 }
 
 export function addSearch(type: "route" | "stop", container: string) {

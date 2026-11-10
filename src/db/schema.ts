@@ -1,3 +1,4 @@
+import { defineRelations } from 'drizzle-orm'
 import { sqliteTable, text, real, integer, index } from 'drizzle-orm/sqlite-core'
 
 export const stops = sqliteTable('stops', {
@@ -76,6 +77,35 @@ export const trips = sqliteTable('trips', {
     ],
 )
 
+export const patterns = sqliteTable('patterns', {
+    pattern_id: text().primaryKey(),
+    route_id: text().notNull(),
+    service_id: text().notNull(),
+    trip_headsign: text(),
+    trip_short_name: text(),
+    direction_id: integer(),
+    block_id: text(),
+    shape_id: text(),
+    wheelchair_accessible: integer().default(0),
+    bikes_allowed: integer().default(0),
+},
+    (t) => [
+        index('patterns_route_id_idx').on(t.route_id),
+        index('patterns_shape_id_idx').on(t.shape_id),
+    ],
+)
+
+export const patternStops = sqliteTable('pattern_stops', {
+    pattern_id: text().notNull(),
+    stop_id: text().notNull(),
+    stop_sequence: integer().notNull(),
+},
+    (t) => [
+        index('pattern_stops_trip_id_idx').on(t.pattern_id),
+        index('pattern_stops_stop_id_idx').on(t.stop_id),
+    ],
+)
+
 export const stopTimes = sqliteTable('stop_times', {
     trip_id: text().notNull(),
     stop_id: text().notNull(),
@@ -105,10 +135,12 @@ export const importMeta = sqliteTable('import_meta', {
     shape_count: integer(),
 })
 
-export type Stop = typeof stops.$inferSelect
-export type StopTime = typeof stopTimes.$inferSelect
-export type Route = typeof routes.$inferSelect
-export type Agency = typeof agencies.$inferSelect
-export type Shape = typeof shapes.$inferSelect
-export type Trip = typeof trips.$inferSelect
-export type ImportMeta = typeof importMeta.$inferSelect
+export type Stop = NonNullable<typeof stops.$inferSelect>
+export type StopTime = NonNullable<typeof stopTimes.$inferSelect>
+export type Route = NonNullable<typeof routes.$inferSelect>
+export type Agency = NonNullable<typeof agencies.$inferSelect>
+export type Shape = NonNullable<typeof shapes.$inferSelect>
+export type Pattern = NonNullable<typeof patterns.$inferSelect>
+export type PatternStops = NonNullable<typeof patternStops.$inferSelect>
+export type Trip = NonNullable<typeof trips.$inferSelect>
+export type ImportMeta = NonNullable<typeof importMeta.$inferSelect>
