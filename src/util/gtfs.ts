@@ -2,7 +2,7 @@ import Toastify from 'toastify-js'
 import { Unzip, UnzipInflate } from "fflate"
 import { db, initDb, rawSql } from "../db/init"
 import { agencies, importMeta, patterns, patternStops, routes, stops, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
-import MiniSearch from 'minisearch'
+import MiniSearch, { type SearchResult } from 'minisearch'
 import type { InferInsertModel } from 'drizzle-orm'
 
 const urlInput: HTMLInputElement = document.querySelector("#gtfs-url")!
@@ -23,13 +23,13 @@ const gtfsStops = document.querySelector("#gtfs-stops")!
 const gtfsTrips = document.querySelector("#gtfs-trips")!
 
 export const routeSearch = new MiniSearch<Route>({
-    fields: ["route_id", "route_short_name", "route_long_name", "route_desc"],
+    fields: ["route_short_name", "route_long_name", "route_desc"],
     storeFields: ["agency_id", "route_type", "route_url", "route_color", "route_text_color", "route_sort_order", "continuous_pickup", "continuous_drop_off", "route_id", "route_short_name", "route_long_name", "route_desc"],
     idField: "route_id",
 
 })
 export const stopSearch = new MiniSearch<Stop>({
-    fields: ["stop_id", "stop_code", "stop_name", "stop_desc"],
+    fields: ["stop_code", "stop_name"],
     storeFields: ["stop_lat", "stop_lon", "zone_id", "stop_url", "location_type", "parent_station", "stop_timezone", "wheelchair_boarding", "platform_code", "level_id", "stop_id", "stop_code", "stop_name", "stop_desc"],
     idField: "stop_id"
 })
@@ -186,7 +186,6 @@ async function parseGTFS(data: File) {
     log("Parsing trips", progress)
     const tripData = (await importGTFSTable<Trip>(data, "trips"))
     progress += 0.07
-    log("Parsed trips", progress)
     log("Parsing stop_times", progress)
     const stopsByTrip = new Map<string, { stop_id: string, stop_sequence: number }[]>()
 
@@ -196,7 +195,6 @@ async function parseGTFS(data: File) {
         list.push({ stop_id: row.stop_id, stop_sequence: Number(row.stop_sequence) })
     })
     progress += 0.12
-    log("Parsed stop_times", progress)
 
     if (stopData === null || routeData === null || agencyData === null || !tripData) return
 
@@ -209,13 +207,11 @@ async function parseGTFS(data: File) {
         return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({ stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence })), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
     }, new Array<{ pattern: Pattern, stops: PatternStops[], route: Route }>())
     progress += 0.24
-    log("Processed patterns", progress)
 
     log("Pushing patterns to db", progress)
     await batchInsert(patternStops, patternData.flatMap(p => p.stops))
     await batchInsert(patterns, patternData.map(p => p.pattern))
     progress += 0.18
-    log("Pushed patterns to db", progress)
 
     console.log(patternData)
 
@@ -271,14 +267,22 @@ export function addSearch(type: "route" | "stop", container: string) {
     input.addEventListener("input", () => {
         const query = input.value
         console.log(query)
-        if (query.length <= 2) {
-        } else {
+        resultList.innerHTML = ""
+        if (query.length >= 2) {
             const searcher = (type == "stop" ? stopSearch : routeSearch)
-            const results = searcher.search(query, {
-                fuzzy: 0.9,
-                prefix: true
+            const results: SearchResult[] = searcher.search(query, {
+                fuzzy: 0.2,
+                prefix: true,
             })
-            console.log(results)
+            results.slice(0, 10).forEach(r => {
+                if (type == "stop") {
+                    const stop = r as any as Stop
+                    resultList.innerHTML += `<div>${stop.stop_name} ${stop.platform_code?.length ? `<span class="bg-neutral-300 px-1 font-sm rounded">${stop.stop_code}</span>` : ""} ${stop.platform_code && stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 px-1 font-sm rounded">pl. ${stop.platform_code}</span>` : ""}</div>`
+                } else {
+                    const route = r as any as Route
+                    resultList.innerHTML += `${route.route_short_name} ${route.route_long_name}`
+                }
+            })
         }
     })
 
