@@ -2,7 +2,7 @@ import Toastify from 'toastify-js'
 import JSZip from "jszip"
 import * as Papa from "papaparse"
 import { db, initDb, rawSql } from "../db/init"
-import { agencies, importMeta, routes, stops, stopTimes, trips, type Pattern, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
+import { agencies, importMeta, patterns, patternStops, routes, stops, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
 import MiniSearch from 'minisearch'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -154,22 +154,22 @@ async function parseGTFS(data: File) {
     await rawSql`DELETE FROM trips`
     await rawSql`DELETE FROM routes`
     await rawSql`DELETE FROM stops`
+    await rawSql`DELETE FROM pattern_stops`
+    await rawSql`DELETE FROM patterns`
     await rawSql`DELETE FROM agencies`
     await rawSql`DELETE FROM import_meta`
 
     const toast = Toastify({
         duration: 1000000000,
-        text: "Parsing data",
+        text: "Parsing GTFS",
         className: "text-black! bg-white! border-2 border-black rounded! p-2!",
         style: { background: "white", "box-shadow": "none" }
     })
     toast.showToast()
 
-    console.log("hhdh")
-
     log("Unzipping GTFS")
     function log(msg: string, prg = -1) {
-        if (toast.toastElement) toast.toastElement.innerHTML += `${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}<br>`
+        if (toast.toastElement) toast.toastElement.innerHTML += `<br>${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}`
     }
     const zipper = new JSZip()
 
@@ -185,32 +185,45 @@ async function parseGTFS(data: File) {
         log("Finished table " + file)
         return data
     }))
+    log("Parsing trips")
     const tripData = (await importGTFSTable<Trip>(zipper, "trips"))?.data
+    log("Parsed trips")
+    log("Parsing stop_times")
     const stopTimeData = (await importGTFSTable<StopTime>(zipper, "stop_times"))?.data
+    log("Parsed stop_times")
 
     if (stopData === null || routeData === null || agencyData === null || !tripData || !stopTimeData) return
 
     console.log(tripData, routeData, stopData, stopTimeData)
 
+    log("Processing patterns")
+    const patternData: { pattern: Pattern, stops: PatternStops[], route: Route }[] = tripData.reduce<{ pattern: Pattern, stops: PatternStops[], route: Route }[]>((p, c) => {
+        const stops = stopTimeData.filter(s => s.trip_id == c.trip_id)
+        if (p.some(e => e.stops.every((s, i) => stops.length > i && s.stop_id == stops[i].stop_id))) return p
+        const { trip_id, ...pattern } = c
+        return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence})), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
+    }, new Array<{ pattern: Pattern, stops: PatternStops[], route: Route }>())
+    log("Processed patterns")
+
+    log("Pushing patterns to db")
+    await batchInsert(patternStops, patternData.flatMap(p => p.stops))
+    await batchInsert(patterns, patternData.map(p => p.pattern))
+    log("Pushed patterns to db")
+    
     await db.insert(importMeta).values({
         feed_name: data.name,
         imported_at: Date.now(),
         file_size_bytes: data.size,
         stop_count: stopData.length,
         route_count: routeData.length,
-        trip_count: 0
+        trip_count: patternData.length
     })
-
-    const patterns: Pattern[] = tripData.reduce<Pattern[]>((p,c) => {
-        const stops = stopTimeData.filter(s => s.trip_id == c.trip_id)
-        if (p.some(e => e)) return p
-        return p
-    }, new Array<Pattern>())
 
     log("Processing data")
     await reloadGTFSFacts()
     await reloadSearches()
     log("Complete")
+    toast.hideToast()
     console.timeEnd("GTFS-parse")
 }
 async function importGTFSTable<T>(zipper: JSZip, fileName: string) {
@@ -257,7 +270,7 @@ export function addSearch(type: "route" | "stop", container: string) {
     resultList.classList.add("flex", "w-full", "gap-1", "flex-col")
     div.appendChild(resultList)
 
-    input.addEventListener("input", e => {
+    input.addEventListener("input", () => {
         const query = input.value
         console.log(query)
         if (query.length <= 2) {

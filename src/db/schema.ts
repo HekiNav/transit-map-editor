@@ -1,4 +1,3 @@
-import { defineRelations } from 'drizzle-orm'
 import { sqliteTable, text, real, integer, index } from 'drizzle-orm/sqlite-core'
 
 export const stops = sqliteTable('stops', {
