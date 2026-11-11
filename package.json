@@ -26,10 +26,9 @@
     "@svgdotjs/svg.panzoom.js": "^2.1.2",
     "@tailwindcss/vite": "^4.2.2",
     "drizzle-orm": "1.0.0-rc.5",
+    "fflate": "^0.8.3",
     "file-saver": "^2.0.5",
-    "jszip": "^3.10.1",
     "minisearch": "^7.2.0",
-    "papaparse": "^5.5.3",
     "sqlocal": "^0.17.0",
     "tailwindcss": "^4.2.2",
     "toastify-js": "^1.12.0"

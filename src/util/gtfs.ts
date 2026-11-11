@@ -1,6 +1,5 @@
 import Toastify from 'toastify-js'
-import JSZip from "jszip"
-import * as Papa from "papaparse"
+import { Unzip, UnzipInflate } from "fflate"
 import { db, initDb, rawSql } from "../db/init"
 import { agencies, importMeta, patterns, patternStops, routes, stops, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
 import MiniSearch from 'minisearch'
@@ -144,11 +143,25 @@ function error(msg: string) {
     }).showToast()
     gtfsError.textContent = msg
 }
-const gtfsTables = [["stops", stops], ["routes", routes], ["agency", agencies]] as const
+const gtfsTables = [["stops", stops, 0.1], ["routes", routes, 0.08], ["agency", agencies, 0.02]] as const
 
 async function parseGTFS(data: File) {
+
     console.log("START")
     console.time("GTFS-parse")
+
+    let progress = 0
+    const toast = Toastify({
+        duration: 1000000000,
+        text: "Starting (0%)",
+        className: "text-black! bg-white! border-2 border-black rounded! p-2!",
+        style: { background: "white", "box-shadow": "none" },
+    })
+
+    toast.showToast()
+    function log(msg: string, prg = -1) {
+        if (toast.toastElement) toast.toastElement.innerHTML += `<br>${msg} ${prg >= 0 ? `(${Math.round(prg * 100)}%)` : ""}`
+    }
     // clear db
     await rawSql`DELETE FROM shapes`
     await rawSql`DELETE FROM trips`
@@ -159,57 +172,53 @@ async function parseGTFS(data: File) {
     await rawSql`DELETE FROM agencies`
     await rawSql`DELETE FROM import_meta`
 
-    const toast = Toastify({
-        duration: 1000000000,
-        text: "Parsing GTFS",
-        className: "text-black! bg-white! border-2 border-black rounded! p-2!",
-        style: { background: "white", "box-shadow": "none" }
-    })
-    toast.showToast()
 
-    log("Unzipping GTFS")
-    function log(msg: string, prg = -1) {
-        if (toast.toastElement) toast.toastElement.innerHTML += `<br>${msg} ${prg >= 0 ? `(${Math.round(prg * 100)})%` : ""}`
-    }
-    const zipper = new JSZip()
+    progress += 0.1
 
-    try {
-        await zipper.loadAsync(data)
-    } catch {
-        return error("Failed to unzip")
-    }
-
-    const [stopData, routeData, agencyData] = await Promise.all(gtfsTables.map(async ([file, table]) => {
-        log("Starting table " + file)
-        const data = await ingestGTFSTable<typeof table>(await importGTFSTable<InferInsertModel<typeof table>>(zipper, file), table)
-        log("Finished table " + file)
-        return data
+    progress += 0.06
+    const [stopData, routeData, agencyData] = await Promise.all(gtfsTables.map(async ([file, table, prg]) => {
+        log("Starting table " + file, progress)
+        const tableData = await ingestGTFSTable<typeof table>(await importGTFSTable<InferInsertModel<typeof table>>(data, file), table)
+        progress += prg
+        log("Finished table " + file, progress)
+        return tableData
     }))
-    log("Parsing trips")
-    const tripData = (await importGTFSTable<Trip>(zipper, "trips"))?.data
-    log("Parsed trips")
-    log("Parsing stop_times")
-    const stopTimeData = (await importGTFSTable<StopTime>(zipper, "stop_times"))?.data
-    log("Parsed stop_times")
+    log("Parsing trips", progress)
+    const tripData = (await importGTFSTable<Trip>(data, "trips"))
+    progress += 0.07
+    log("Parsed trips", progress)
+    log("Parsing stop_times", progress)
+    const stopsByTrip = new Map<string, { stop_id: string, stop_sequence: number }[]>()
 
-    if (stopData === null || routeData === null || agencyData === null || !tripData || !stopTimeData) return
+    await streamGTFSTable<StopTime>(data, "stop_times", row => {
+        let list = stopsByTrip.get(row.trip_id)
+        if (!list) stopsByTrip.set(row.trip_id, list = [])
+        list.push({ stop_id: row.stop_id, stop_sequence: Number(row.stop_sequence) })
+    })
+    progress += 0.12
+    log("Parsed stop_times", progress)
 
-    console.log(tripData, routeData, stopData, stopTimeData)
+    if (stopData === null || routeData === null || agencyData === null || !tripData) return
 
-    log("Processing patterns")
+    log("Processing patterns", progress)
     const patternData: { pattern: Pattern, stops: PatternStops[], route: Route }[] = tripData.reduce<{ pattern: Pattern, stops: PatternStops[], route: Route }[]>((p, c) => {
-        const stops = stopTimeData.filter(s => s.trip_id == c.trip_id)
+        const stops = stopsByTrip.get(c.trip_id)
+        if (!stops) return p
         if (p.some(e => e.stops.every((s, i) => stops.length > i && s.stop_id == stops[i].stop_id))) return p
         const { trip_id, ...pattern } = c
-        return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence})), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
+        return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({ stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence })), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
     }, new Array<{ pattern: Pattern, stops: PatternStops[], route: Route }>())
-    log("Processed patterns")
+    progress += 0.24
+    log("Processed patterns", progress)
 
-    log("Pushing patterns to db")
+    log("Pushing patterns to db", progress)
     await batchInsert(patternStops, patternData.flatMap(p => p.stops))
     await batchInsert(patterns, patternData.map(p => p.pattern))
-    log("Pushed patterns to db")
-    
+    progress += 0.18
+    log("Pushed patterns to db", progress)
+
+    console.log(patternData)
+
     await db.insert(importMeta).values({
         feed_name: data.name,
         imported_at: Date.now(),
@@ -218,41 +227,30 @@ async function parseGTFS(data: File) {
         route_count: routeData.length,
         trip_count: patternData.length
     })
+    progress += 0.02
 
-    log("Processing data")
+    log("Reloading UI", progress)
     await reloadGTFSFacts()
     await reloadSearches()
-    log("Complete")
-    toast.hideToast()
+    progress += 0.01
+    log("Complete", progress)
+    setTimeout(() => toast.hideToast(), 1000)
     console.timeEnd("GTFS-parse")
 }
-async function importGTFSTable<T>(zipper: JSZip, fileName: string) {
-    const file = zipper.file(fileName + ".txt") ?? zipper.file(fileName + ".csv")
-    if (!file) {
-        error(`Failed to parse ${fileName}`)
-        return null
-    }
+async function importGTFSTable<T>(zip: Blob, fileName: string) {
+    const data: T[] = []
     try {
-        const text = await file.async("text")
-        const result = await new Promise<Papa.ParseResult<T>>(res => {
-            Papa.parse(text, {
-                header: true,
-                skipEmptyLines: true,
-                worker: true,
-                complete: (results) => { res(results as Papa.ParseResult<T>) },
-            })
-        })
-        return result
-
+        await streamGTFSTable<T>(zip, fileName, r => { data.push(r as any) })
+        return data
     } catch (err) {
         error(String(err))
         return null
     }
 }
-async function ingestGTFSTable<T extends typeof gtfsTables[number][1]>(result: Papa.ParseResult<InferInsertModel<T>> | null, table: T) {
+async function ingestGTFSTable<T extends typeof gtfsTables[number][1]>(result: InferInsertModel<T>[] | null, table: T) {
     if (!result) return null
-    await batchInsert(table, result.data)
-    return result.data
+    await batchInsert(table, result)
+    return result
 }
 
 export function addSearch(type: "route" | "stop", container: string) {
@@ -277,7 +275,7 @@ export function addSearch(type: "route" | "stop", container: string) {
         } else {
             const searcher = (type == "stop" ? stopSearch : routeSearch)
             const results = searcher.search(query, {
-                fuzzy: 0.8,
+                fuzzy: 0.9,
                 prefix: true
             })
             console.log(results)
@@ -287,10 +285,74 @@ export function addSearch(type: "route" | "stop", container: string) {
     cont.appendChild(div)
 }
 
+
+function parseCsvLine(line: string): string[] {
+    const out: string[] = []
+    let cur = "", inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i]
+        if (inQuotes) {
+            if (ch === '"') {
+                if (line[i + 1] === '"') { cur += '"'; i++ } else inQuotes = false
+            } else cur += ch
+        } else if (ch === '"') inQuotes = true
+        else if (ch === ",") { out.push(cur); cur = "" }
+        else cur += ch
+    }
+    out.push(cur)
+    return out
+}
+
+export async function streamGTFSTable<T>(zip: File | Blob, table: string, onRow: (row: T) => void): Promise<void> {
+    const decoder = new TextDecoder()
+    let tail = ""
+    let headers: string[] | null = null
+    let failure: unknown = null
+    let done = false
+
+    const handleText = (text: string, final: boolean) => {
+        tail += text
+        const lines = tail.split(/\r?\n/)
+        tail = final ? "" : lines.pop()!
+        if (final && lines.length && lines[lines.length - 1] === "") lines.pop()
+        for (const line of lines) {
+            if (!line) continue
+            if (!headers) {
+                headers = parseCsvLine(line.replace(/^\uFEFF/, "")).map(h => h.trim())
+                continue
+            }
+            const cells = parseCsvLine(line)
+            const row: Record<string, string> = {}
+            for (let i = 0; i < headers.length; i++) row[headers[i]] = cells[i] ?? ""
+            onRow(row as T)
+        }
+    }
+
+    const unzip = new Unzip()
+    unzip.register(UnzipInflate)
+    unzip.onfile = file => {
+        if (file.name !== `${table}.txt`) return
+        file.ondata = (err, chunk, final) => {
+            if (err) { failure = err; return }
+            handleText(decoder.decode(chunk, { stream: !final }), final)
+            if (final) done = true
+        }
+        file.start()
+    }
+
+    const reader = zip.stream().getReader()
+    while (true) {
+        const { value, done: eof } = await reader.read()
+        if (eof) { unzip.push(new Uint8Array(0), true); break }
+        unzip.push(value, false)
+        if (failure) throw failure
+    }
+    if (!done) throw new Error(`${table}.txt not found in zip`)
+}
+
 const BATCH_SIZE = 500
 
 async function batchInsert<T extends Record<string, unknown>>(table: Parameters<typeof db.insert>[0], rows: T[]): Promise<void> {
-    console.log(table, rows.length)
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         await db.insert(table).values(rows.slice(i, i + BATCH_SIZE) as T[]).onConflictDoNothing()
     }

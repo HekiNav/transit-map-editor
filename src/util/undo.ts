@@ -113,7 +113,6 @@ export class UndoSystem {
         this.#undoStack.push(step)
         svg.fire("update")
         svg.fire("history")
-        console.log(this.#redoStack, this.#undoStack)
         return step.data
     }
 
@@ -162,7 +161,6 @@ function mutationsToChanges(mutations: MutationRecord[]): AnyChange[] {
 
     mutations.forEach(m => {
         if (m.type == "attributes" && m.attributeName && m.target instanceof Element) {
-            console.log(m)
             changes.push({
                 type: "attribute",
                 name: m.attributeName,
@@ -220,7 +218,6 @@ function applyRedo(changes: AnyChange[]): void {
 
 function applyUndo(changes: AnyChange[]): void {
     [...changes].reverse().forEach((change) => {
-        console.log(change)
         if (change.type === 'attribute') {
             if (change.oldValue === null) {
                 change.target.removeAttribute(change.name)
