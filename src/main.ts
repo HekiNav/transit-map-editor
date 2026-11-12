@@ -18,19 +18,18 @@ import './style.css'
 import "toastify-js/src/toastify.css"
 import { elementSize } from './util/html'
 import { Grid } from './util/grid'
-import { BasicCircleShape } from './shapes/basic'
 import { clearSelection } from './util/selection'
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
-import type { options } from '@svgdotjs/svg.panzoom.js'
+import type { PanZoomOptions } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
 import { load, save } from './util/save'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
 
-export const PAN_ZOOM_OPTIONS: options = {
+export const PAN_ZOOM_OPTIONS: PanZoomOptions = {
     zoomFactor: 0.5,
     zoomMax: 10,
     zoomMin: 0.05,
@@ -60,8 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initListeners()
     updateHistory()
 
-    new BasicCircleShape({ r: 20, x: 100, y: 0 })
-    new BasicCircleShape({ r: 20, x: 100, y: 0 })
     new StopShape({ x: 200, y: 0, w: 10, h: 50 })
     setTimeout(() => {
         undo.logChange("Initted test view")

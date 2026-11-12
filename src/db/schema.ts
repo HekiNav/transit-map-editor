@@ -1,4 +1,5 @@
 import { sqliteTable, text, real, integer, index } from 'drizzle-orm/sqlite-core'
+import { db } from './init'
 
 export const stops = sqliteTable('stops', {
     stop_id: text().primaryKey(),
@@ -143,3 +144,8 @@ export type Pattern = NonNullable<typeof patterns.$inferSelect>
 export type PatternStops = NonNullable<typeof patternStops.$inferSelect>
 export type Trip = NonNullable<typeof trips.$inferSelect>
 export type ImportMeta = NonNullable<typeof importMeta.$inferSelect>
+
+const stopsWithRoutes = () =>
+    db.query.stops.findMany({ with: { patterns: { with: { pattern: { with: { route: true } } } } } });
+
+export type StopWithRoutes = Awaited<ReturnType<typeof stopsWithRoutes>>[number];
