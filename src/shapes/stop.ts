@@ -19,14 +19,16 @@ export class StopShape extends SelectableShape {
             if (!index) return prev
             const remainingStops = curr.pattern?.stops.slice(index + 1, -1)
             if (!remainingStops) return prev
-            const endIndex = remainingStops.findIndex(s => new Set(s.stop?.patterns.map(p => p.pattern_id)).difference(new Set(curr.pattern?.stops[index + 1].stop?.patterns.map(p => p.pattern_id))).size != 0)
+            const endIndex = remainingStops.findIndex(s => {
+                console.log(s.stop, s.stop?.stop_name, new Set(s.stop?.patterns.map(p => p.pattern_id)), new Set(remainingStops[0].stop?.patterns.map(p => p.pattern_id)))
+                return new Set(s.stop?.patterns.map(p => p.pattern_id)).difference(new Set(remainingStops[0].stop?.patterns.map(p => p.pattern_id))).size != 0
+            })
             const lastStops = remainingStops.slice(0, endIndex + 1)
             const groupIdx = prev.findIndex(g => g[0].lastStops[0].stop_id == lastStops[0].stop_id)
             if (groupIdx < 0) return [...prev, [{ ...curr, lastStops: lastStops.map(s => s.stop).filter(s => s !== null) }]]
             prev[groupIdx].push({ ...curr, lastStops: lastStops.map(s => s.stop).filter(s => s !== null) })
             return prev
         }, new Array<(StopWithRoutes["patterns"][number] & { lastStops: Stop[] })[]>())
-        console.log(patternGroups)
         return patternGroups.map(g => transpose(g.map(p => p.lastStops)).reduce<(Stop | null)>((prev, curr) => {
             return !prev || curr.every(s => s.stop_id === curr[0].stop_id) ? curr[0] : prev
         }, null))
