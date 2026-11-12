@@ -27,5 +27,15 @@ export default defineRelations(schema, (r) => ({
             from: r.stops.stop_id,
             to: r.patternStops.stop_id
         })
+    },
+    patternStops: {
+        pattern: r.one.patterns({
+            from: r.patternStops.pattern_id,
+            to: r.patterns.pattern_id
+        }),
+        stop: r.one.stops({
+            from: r.patternStops.stop_id,
+            to: r.stops.stop_id
+        }),
     }
 }))

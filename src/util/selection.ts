@@ -30,7 +30,7 @@ window.addEventListener("DOMContentLoaded", async () => {
                     <div id="stop-search"></div>
                 </div>
                 `
-                addSearch("stop", "#stop-search")
+                addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
             } else if (selected instanceof BasicCircleShape) {
                 selectionCont.innerHTML = "Circle"
             }

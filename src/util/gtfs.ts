@@ -30,7 +30,7 @@ export const routeSearch = new MiniSearch<Route>({
 })
 export const stopSearch = new MiniSearch<Stop>({
     fields: ["stop_code", "stop_name"],
-    storeFields: ["stop_lat", "stop_lon", "zone_id", "stop_url", "location_type", "parent_station", "stop_timezone", "wheelchair_boarding", "platform_code", "level_id", "stop_id", "stop_code", "stop_name", "stop_desc"],
+    storeFields: ["stop_lat", "stop_lon", "zone_id", "stop_url", "location_type", "parent_station", "stop_timezone", "wheelchair_boarding", "platform_code", "level_id", "stop_id", "stop_code", "stop_name", "stop_desc", "patterns", "routes"],
     idField: "stop_id"
 })
 
@@ -127,9 +127,17 @@ async function reloadGTFSFacts() {
 async function reloadSearches() {
     stopSearch.removeAll()
     routeSearch.removeAll()
-    const stops = await db.query.stops.findMany()
+    const stops = await db.query.stops.findMany({
+        with: {
+            patterns: {
+                with: {
+                    pattern: true
+                }
+            }
+        }
+    })
     const routes = await db.query.routes.findMany()
-    await stopSearch.addAllAsync(stops)
+    await stopSearch.addAllAsync(stops.map(s => ({...s, routes: s.patterns.map(p => routes.find(r => r.route_id == p.pattern?.route_id))})))
     await routeSearch.addAllAsync(routes)
     console.log("SEARCHES INITTED", stops, routes)
 }
@@ -249,7 +257,7 @@ async function ingestGTFSTable<T extends typeof gtfsTables[number][1]>(result: I
     return result
 }
 
-export function addSearch(type: "route" | "stop", container: string) {
+export function addSearch(type: "route" | "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {
     const cont = document.querySelector(container)
     if (!cont) return
     const div = document.createElement("div")
@@ -274,19 +282,41 @@ export function addSearch(type: "route" | "stop", container: string) {
                 fuzzy: 0.2,
                 prefix: true,
             })
-            results.slice(0, 10).forEach(r => {
-                if (type == "stop") {
-                    const stop = r as any as Stop
-                    resultList.innerHTML += `<div>${stop.stop_name} ${stop.platform_code?.length ? `<span class="bg-neutral-300 px-1 font-sm rounded">${stop.stop_code}</span>` : ""} ${stop.platform_code && stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 px-1 font-sm rounded">pl. ${stop.platform_code}</span>` : ""}</div>`
-                } else {
-                    const route = r as any as Route
-                    resultList.innerHTML += `${route.route_short_name} ${route.route_long_name}`
-                }
-            })
+            updateResults(results)
         }
     })
 
     cont.appendChild(div)
+
+    function updateResults(results: SearchResult[]) {
+        resultList.innerHTML = ""
+        results.slice(0, 10).forEach((r) => {
+            const item = document.createElement("div")
+            item.classList.add("search-item", "flex", "flex-row", "justify-start", "items-center", "gap-1", "text-nowrap")
+            let id = ""
+            if (type == "stop") {
+                const stop = r as any as Stop & {routes: Route[]}
+                item.setAttribute("data-id", stop.stop_id)
+                id = stop.stop_id
+                item.innerHTML = `
+                <input type="checkbox" class="h-4! w-4! checked:bg-green-500 rounded border-2 appearance-none disabled" ${selected.has(stop.stop_id) ? "checked" : ""}>
+                ${stop.stop_name} ${stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${stop.stop_code}</span>` : ""} 
+                ${stop.platform_code && stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${stop.platform_code}</span>` : ""}
+                <span class="h-full shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5" title="${stop.routes.map(e => e.route_short_name).join(",")}" >${stop.routes?.map(e => `<span class="bg-green-500 px-1 text-xs rounded">${e.route_short_name}</span>`).join("") || ""}</span>
+                `
+            } else {
+                const route = r as any as Route
+                id = route.route_id
+                item.innerHTML = `${route.route_short_name} ${route.route_long_name}`
+            }
+            item.addEventListener("click", () => {
+                console.log("jdjdjd")
+                setSelected(id)
+                updateResults(results)
+            })
+            resultList.appendChild(item)
+        })
+    }
 }
 
 
