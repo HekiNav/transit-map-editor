@@ -146,6 +146,6 @@ export type Trip = NonNullable<typeof trips.$inferSelect>
 export type ImportMeta = NonNullable<typeof importMeta.$inferSelect>
 
 const stopsWithRoutes = () =>
-    db.query.stops.findMany({ with: { patterns: { with: { pattern: { with: { route: true } } } } } });
+    db.query.stops.findMany({ with: { patterns: { with: { pattern: { with: { route: true, stops: { with: { stop: { with: { patterns: true } } } } } } } } } });
 
 export type StopWithRoutes = Awaited<ReturnType<typeof stopsWithRoutes>>[number];

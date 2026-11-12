@@ -3,6 +3,8 @@ import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
 import type { SelectableShape } from "./shape"
 import { addSearch } from "./gtfs"
+import { StopShape } from "../shapes/stop"
+import { BasicCircleShape } from "../shapes/basic"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -12,31 +14,33 @@ let movingElements: { e: Element, offset: ArrayXY }[] = []
 const selectionCont = document.querySelector("#selection")!
 
 window.addEventListener("DOMContentLoaded", async () => {
-    const { StopShape } = await import("../shapes/stop")
-    const { BasicCircleShape } = await import("../shapes/basic")
-
     svg.on("select update", () => {
-        const selection = getSelection()
-        if (selection.length == 0) {
-            selectionCont.innerHTML = "No selection"
-        } else if (selection.length > 1) {
-            selectionCont.innerHTML = `${selection.length} selections`
-        } else {
-            const selected = selection[0]
-            if (selected instanceof StopShape) {
-                selectionCont.innerHTML = `
+        onSelection()
+    })
+})
+
+function onSelection() {
+    const selection = getSelection()
+    if (selection.length == 0) {
+        selectionCont.innerHTML = "No selection"
+    } else if (selection.length > 1) {
+        selectionCont.innerHTML = `${selection.length} selections`
+    } else {
+        const selected = selection[0]
+        if (selected instanceof StopShape) {
+            selectionCont.innerHTML = `
                 <div>
                     <span class="font-bold">Stop</span>
                     <div id="stop-search"></div>
                 </div>
                 `
-                addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
-            } else if (selected instanceof BasicCircleShape) {
-                selectionCont.innerHTML = "Circle"
-            }
+            console.log(selected.getAdjacentStops())
+            addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
+        } else if (selected instanceof BasicCircleShape) {
+            selectionCont.innerHTML = "Circle"
         }
-    })
-})
+    }
+}
 
 export function getSelection() {
     return selectedElements
@@ -83,7 +87,7 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`)
         movingElements = []
-        setTimeout(() => svg.data("moving", false),1)
+        setTimeout(() => svg.data("moving", false), 1)
     })
     svg.on("mousemove", (ev) => {
         if (movingElements.length) svg.data("moving", true)

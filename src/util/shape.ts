@@ -2,12 +2,14 @@ import { Element } from "@svgdotjs/svg.js"
 import { getSelection, select } from "./selection";
 import { G } from "@svgdotjs/svg.js";
 import type { ArrayXY } from "@svgdotjs/svg.js";
+import {Eventable} from "./event"
 
 export type ShapeType = "basic_circle" | "stop" | "route"
 
-export class SelectableShape {
+export class SelectableShape extends Eventable<"update"> {
     element: Element;
     constructor(el: Element, id: string, type: ShapeType, selected = false) {
+        super("update")
         this.element = svg.group()
             .add(el)
         if (selected) select(this)
@@ -30,9 +32,10 @@ export class SelectableShape {
         select(this, new_sel)
     }
 }
-export class Arrow {
+export class Arrow extends Eventable<"update"> {
     element: Element;
     constructor(p1: ArrayXY, p2: ArrayXY, w = 4, hW = 2 * w, hL = 2 * w) {
+        super("update")
         this.element = new G().addClass("arrow").center(...p1)
         this.element.add(
             svg.line([p1, p2]).stroke({ width: w })
