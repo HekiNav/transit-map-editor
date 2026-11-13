@@ -29,15 +29,23 @@ function onSelection() {
         const selected = selection[0]
         if (selected instanceof StopShape) {
             selectionCont.innerHTML = `
-                <div>
+                <div class="flex flex-col gap-1 w-full h-full overflow-y-scroll">
                     <div class="font-bold text-lg">Stop</div>
                     <div class="font-bold">Linked stops</div>
                     ${selected.stops.map(s => `
-                        <div class="search-item flex flex-row justify-start items-center gap-1 text-nowrap">
+                        <div class="flex flex-row justify-start items-center gap-1 text-nowrap overflow-hidden">
                             ${s.stop_name} ${s.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop_code}</span>` : ""} 
                             ${s.platform_code && s.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.platform_code}</span>` : ""}
-                            <span class="h-full shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5" title="${s.patterns.map(e => e.pattern?.route?.route_short_name).join(",")}" >
-                            ${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded">${e.pattern?.route?.route_short_name}</span>`).join("") || ""}</span>
+                            <span class="h-6 shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5" title="${s.patterns.map(e => e.pattern?.route?.route_short_name).join(",")}" >
+                            ${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.pattern?.route?.route_short_name}</span>`).join("") || ""}</span>
+                        </div>
+                    `).join("")}
+                    <div class="font-bold">Adjacent stops</div>
+                    ${selected.getAdjacentStops().map(s => `
+                        <div class="flex flex-row justify-start items-center gap-1 text-nowrap p-1 border-2 rounded overflow-hidden">
+                            ${s.stop.stop_name} ${s.stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop.stop_code}</span>` : ""} 
+                            ${s.stop.platform_code && s.stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.stop.platform_code}</span>` : ""}
+                            <span class="h-6 shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5">${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.route?.route_short_name}</span>`).join("") || ""}</span>
                         </div>
                     `).join("")}
                     <div id="stop-search"></div>

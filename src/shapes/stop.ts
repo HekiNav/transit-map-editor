@@ -3,7 +3,6 @@ import { SelectableShape } from "../util/shape";
 import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";
 import { transpose } from "../util/math"
-import type { Pattern } from "@svgdotjs/svg.js";
 
 export interface AdjacentStop {
     stop: Stop,
@@ -35,7 +34,6 @@ export class StopShape extends SelectableShape {
                 const baseSet = new Set(g.map(p => p.pattern_id))
                 return thisSet.difference(baseSet).size != 0 || baseSet.difference(thisSet).size != 0
             })
-            console.log(endIndex, p.lastStops)
             return {
                 ...p,
                 lastStops: p.lastStops.slice(0, endIndex + 1)
@@ -43,15 +41,14 @@ export class StopShape extends SelectableShape {
         }))
         return patternGroups.map(g => ({
             stop: transpose(g.map(p => p.lastStops)).reduce<(Stop | null)>((prev, curr) => {
-                return curr.every((s) => s.stop_id === curr[0].stop_id) ? curr[0] : prev
+                return curr.every((s) => s && s.stop_id === curr[0].stop_id) ? curr[0] : prev
             }, null) || g[0].lastStops[0],
             patterns: g.map(({ lastStops, ...pattern }) => pattern.pattern!).filter(p => p !== null && p.route !== null)
         })).reduce<AdjacentStop[]>((prev, curr) => {
-            console.log(prev, curr)
             const index = prev.findIndex(s => s.stop.stop_id == curr.stop.stop_id)
             if (index != -1) {
                 const otherStop = prev.splice(index, 1)[0]
-                return [...prev, {stop: curr.stop, patterns: [...otherStop.patterns, ...curr.patterns]}]
+                return [...prev, { stop: curr.stop, patterns: [...otherStop.patterns, ...curr.patterns] }]
             }
             return [...prev, curr]
         }, new Array<AdjacentStop>())

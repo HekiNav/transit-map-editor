@@ -19,6 +19,6 @@ export function save() {
     saveAs(blob, "map.tm.svg")
 }
 export function load(file: File, undo: UndoSystem) {
-    if ((undo.canRedo || undo.canRedo) && !confirm("Load file and override current map?")) return
+    if ((undo.canRedo || undo.canUndo) && !confirm("Load file and override current map?")) return
     console.log("LOADING")
 }

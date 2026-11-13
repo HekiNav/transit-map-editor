@@ -137,7 +137,7 @@ async function reloadSearches() {
         }
     })
     const routes = await db.query.routes.findMany()
-    await stopSearch.addAllAsync(stops.map(s => ({...s, routes: s.patterns.map(p => routes.find(r => r.route_id == p.pattern?.route_id))})))
+    await stopSearch.addAllAsync(stops.map(s => ({ ...s, routes: s.patterns.map(p => routes.find(r => r.route_id == p.pattern?.route_id)) })))
     await routeSearch.addAllAsync(routes)
     console.log("SEARCHES INITTED", stops, routes)
 }
@@ -266,15 +266,22 @@ export function addSearch(type: "route" | "stop", container: string, selected: S
     const input = document.createElement("input")
     input.classList.add("w-full")
     input.placeholder = "Search for " + type + "s"
+    input.value = localStorage.getItem(`last-${type}-query`) || ""
     div.appendChild(input)
 
     const resultList = document.createElement("div")
     resultList.classList.add("flex", "w-full", "gap-1", "flex-col")
     div.appendChild(resultList)
 
-    input.addEventListener("input", () => {
+    input.addEventListener("input", onInput)
+
+    cont.appendChild(div)
+
+    onInput()
+
+    function onInput() {
         const query = input.value
-        console.log(query)
+        localStorage.setItem(`last-${type}-query`, query)
         resultList.innerHTML = ""
         if (query.length >= 2) {
             const searcher = (type == "stop" ? stopSearch : routeSearch)
@@ -284,9 +291,7 @@ export function addSearch(type: "route" | "stop", container: string, selected: S
             })
             updateResults(results)
         }
-    })
-
-    cont.appendChild(div)
+    }
 
     function updateResults(results: SearchResult[]) {
         resultList.innerHTML = ""
@@ -295,7 +300,7 @@ export function addSearch(type: "route" | "stop", container: string, selected: S
             item.classList.add("search-item", "flex", "flex-row", "justify-start", "items-center", "gap-1", "text-nowrap")
             let id = ""
             if (type == "stop") {
-                const stop = r as any as Stop & {routes: Route[]}
+                const stop = r as any as Stop & { routes: Route[] }
                 item.setAttribute("data-id", stop.stop_id)
                 id = stop.stop_id
                 item.innerHTML = `

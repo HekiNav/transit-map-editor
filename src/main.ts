@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     svg.on("history", updateHistory)
 
     document.getElementById("save")?.addEventListener("click", save)
-    document.getElementById("load")?.addEventListener("change", (e) => {
+    document.getElementById("save_load")?.addEventListener("change", (e) => {
         load(((e.target as HTMLInputElement).files as FileList)[0], undo)
     })
 })
