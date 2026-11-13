@@ -30,11 +30,20 @@ function onSelection() {
         if (selected instanceof StopShape) {
             selectionCont.innerHTML = `
                 <div>
-                    <span class="font-bold">Stop</span>
+                    <div class="font-bold text-lg">Stop</div>
+                    <div class="font-bold">Linked stops</div>
+                    ${selected.stops.map(s => `
+                        <div class="search-item flex flex-row justify-start items-center gap-1 text-nowrap">
+                            ${s.stop_name} ${s.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop_code}</span>` : ""} 
+                            ${s.platform_code && s.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.platform_code}</span>` : ""}
+                            <span class="h-full shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5" title="${s.patterns.map(e => e.pattern?.route?.route_short_name).join(",")}" >
+                            ${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded">${e.pattern?.route?.route_short_name}</span>`).join("") || ""}</span>
+                        </div>
+                    `).join("")}
                     <div id="stop-search"></div>
                 </div>
                 `
-            console.log(selected.getAdjacentStops())
+            console.log(selected.getAdjacentStops().map(s => `${s.stop.stop_name} ${s.patterns.map(p => p.route?.route_short_name).join(" ")}`))
             addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"

@@ -149,3 +149,13 @@ const stopsWithRoutes = () =>
     db.query.stops.findMany({ with: { patterns: { with: { pattern: { with: { route: true, stops: { with: { stop: { with: { patterns: true } } } } } } } } } });
 
 export type StopWithRoutes = Awaited<ReturnType<typeof stopsWithRoutes>>[number];
+
+const stopsWithPatterns = () =>
+    db.query.stops.findMany({ with: { patterns: true } });
+
+export type StopWithPattern = Awaited<ReturnType<typeof stopsWithPatterns>>[number];
+
+const patternsWithRoutes = () =>
+    db.query.patterns.findMany({ with: { route: true, stops: { with: { stop: { with: { patterns: true } } } } } });
+
+export type PatternWithRoute = Awaited<ReturnType<typeof patternsWithRoutes>>[number];

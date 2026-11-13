@@ -1,8 +1,14 @@
 import { Rect } from "@svgdotjs/svg.js";
 import { SelectableShape } from "../util/shape";
-import type { Stop, StopWithRoutes } from "../db/schema";
+import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";
 import { transpose } from "../util/math"
+import type { Pattern } from "@svgdotjs/svg.js";
+
+export interface AdjacentStop {
+    stop: Stop,
+    patterns: PatternWithRoute[]
+}
 
 export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
@@ -12,26 +18,43 @@ export class StopShape extends SelectableShape {
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()
     }
-    getAdjacentStops() {
+    getAdjacentStops(): AdjacentStop[] {
         const patterns = this.stops.flatMap(s => s.patterns)
         const patternGroups = patterns.reduce((prev, curr) => {
             const index = curr.pattern?.stops.findLastIndex(s => s.stop_id == curr.stop_id && s.stop_sequence == curr.stop_sequence)
             if (!index) return prev
-            const remainingStops = curr.pattern?.stops.slice(index + 1, -1)
-            if (!remainingStops) return prev
-            const endIndex = remainingStops.findIndex(s => {
-                console.log(s.stop, s.stop?.stop_name, new Set(s.stop?.patterns.map(p => p.pattern_id)), new Set(remainingStops[0].stop?.patterns.map(p => p.pattern_id)))
-                return new Set(s.stop?.patterns.map(p => p.pattern_id)).difference(new Set(remainingStops[0].stop?.patterns.map(p => p.pattern_id))).size != 0
-            })
-            const lastStops = remainingStops.slice(0, endIndex + 1)
+            const lastStops = curr.pattern?.stops.slice(index + 1, curr.pattern.stops.length)
+            if (!lastStops || lastStops.length == 0) return prev
             const groupIdx = prev.findIndex(g => g[0].lastStops[0].stop_id == lastStops[0].stop_id)
             if (groupIdx < 0) return [...prev, [{ ...curr, lastStops: lastStops.map(s => s.stop).filter(s => s !== null) }]]
             prev[groupIdx].push({ ...curr, lastStops: lastStops.map(s => s.stop).filter(s => s !== null) })
             return prev
-        }, new Array<(StopWithRoutes["patterns"][number] & { lastStops: Stop[] })[]>())
-        return patternGroups.map(g => transpose(g.map(p => p.lastStops)).reduce<(Stop | null)>((prev, curr) => {
-            return !prev || curr.every(s => s.stop_id === curr[0].stop_id) ? curr[0] : prev
-        }, null))
+        }, new Array<(StopWithRoutes["patterns"][number] & { lastStops: StopWithPattern[] })[]>()).map(g => g.map(p => {
+            const endIndex = p.lastStops.findIndex(s => {
+                const thisSet = new Set(s.patterns.map(p => p.pattern_id))
+                const baseSet = new Set(g.map(p => p.pattern_id))
+                return thisSet.difference(baseSet).size != 0 || baseSet.difference(thisSet).size != 0
+            })
+            console.log(endIndex, p.lastStops)
+            return {
+                ...p,
+                lastStops: p.lastStops.slice(0, endIndex + 1)
+            }
+        }))
+        return patternGroups.map(g => ({
+            stop: transpose(g.map(p => p.lastStops)).reduce<(Stop | null)>((prev, curr) => {
+                return curr.every((s) => s.stop_id === curr[0].stop_id) ? curr[0] : prev
+            }, null) || g[0].lastStops[0],
+            patterns: g.map(({ lastStops, ...pattern }) => pattern.pattern!).filter(p => p !== null && p.route !== null)
+        })).reduce<AdjacentStop[]>((prev, curr) => {
+            console.log(prev, curr)
+            const index = prev.findIndex(s => s.stop.stop_id == curr.stop.stop_id)
+            if (index != -1) {
+                const otherStop = prev.splice(index, 1)[0]
+                return [...prev, {stop: curr.stop, patterns: [...otherStop.patterns, ...curr.patterns]}]
+            }
+            return [...prev, curr]
+        }, new Array<AdjacentStop>())
     }
     toggleId(id: string) {
         if (this.gtfsIds.has(id)) this.gtfsIds.delete(id)
