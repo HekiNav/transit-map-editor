@@ -1,7 +1,7 @@
 import Toastify from 'toastify-js'
 import { Unzip, UnzipInflate } from "fflate"
 import { db, initDb, rawSql } from "../db/init"
-import { agencies, importMeta, patterns, patternStops, routes, stops, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
+import { agencies, calendar, calendarDates, importMeta, patterns, patternStops, routes, stops, type Agency, type Calendar, type CalendarDates, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
 import MiniSearch, { type SearchResult } from 'minisearch'
 import type { InferInsertModel } from 'drizzle-orm'
 
@@ -151,7 +151,7 @@ function error(msg: string) {
     }).showToast()
     gtfsError.textContent = msg
 }
-const gtfsTables = [["stops", stops, 0.1], ["routes", routes, 0.08], ["agency", agencies, 0.02]] as const
+const gtfsTables = [["stops", stops, 0.1], ["routes", routes, 0.08], ["agency", agencies, 0.01], ["calendar", calendar, 0.01], ["calendar_dates", calendarDates, 0.01]] as const
 
 async function parseGTFS(data: File) {
 
@@ -178,19 +178,22 @@ async function parseGTFS(data: File) {
     await rawSql`DELETE FROM pattern_stops`
     await rawSql`DELETE FROM patterns`
     await rawSql`DELETE FROM agencies`
+    await rawSql`DELETE FROM calendar`
+    await rawSql`DELETE FROM calendar_dates`
     await rawSql`DELETE FROM import_meta`
 
 
     progress += 0.1
 
     progress += 0.06
-    const [stopData, routeData, agencyData] = await Promise.all(gtfsTables.map(async ([file, table, prg]) => {
+    const [stopData, routeData, agencyData, calendarData, calendarDatesData] = await Promise.all(gtfsTables.map(async ([file, table, prg]) => {
         log("Starting table " + file, progress)
         const tableData = await ingestGTFSTable<typeof table>(await importGTFSTable<InferInsertModel<typeof table>>(data, file), table)
         progress += prg
         log("Finished table " + file, progress)
         return tableData
     }))
+
     log("Parsing trips", progress)
     const tripData = (await importGTFSTable<Trip>(data, "trips"))
     progress += 0.07
@@ -207,6 +210,42 @@ async function parseGTFS(data: File) {
     if (stopData === null || routeData === null || agencyData === null || !tripData) return
 
     log("Processing patterns", progress)
+
+    const now = new Date()
+    const timezone = (agencyData[0] as Agency).agency_timezone
+    const parts = new Intl.DateTimeFormat("en", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "long"
+    }).formatToParts(now)
+
+    const getPart = (type: string) => parts.find(p => p.type === type)!.value
+
+    const today = `${getPart("year")}${getPart("month")}${getPart("day")}`
+    const weekday = getPart("weekday").toLowerCase() as "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+
+    const activeServices = new Set<string>();
+    (calendarData as Calendar[]).forEach(c => {
+        if (c.start_date <= today && c.end_date >= today && Number(c[weekday]) === 1) {
+            activeServices.add(c.service_id)
+        }
+    });
+
+    (calendarDatesData as CalendarDates[]).forEach(c => {
+        if (c.date === today) {
+            if (Number(c.exception_type) == 1) {
+                activeServices.add(c.service_id)
+            } else if (Number(c.exception_type) == 2) {
+                activeServices.delete(c.service_id)
+            }
+        }
+    })
+
+    console.log(activeServices)
+
+
     const patternData: { pattern: Pattern, stops: PatternStops[], route: Route }[] = tripData.reduce<{ pattern: Pattern, stops: PatternStops[], route: Route }[]>((p, c) => {
         const stops = stopsByTrip.get(c.trip_id)
         if (!stops) return p
@@ -214,7 +253,7 @@ async function parseGTFS(data: File) {
         const { trip_id, ...pattern } = c
         return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({ stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence })), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
     }, new Array<{ pattern: Pattern, stops: PatternStops[], route: Route }>())
-    progress += 0.24
+    progress += 0.23
 
     log("Pushing patterns to db", progress)
     await batchInsert(patternStops, patternData.flatMap(p => p.stops))

@@ -5,27 +5,26 @@ const { driver, batchDriver, sql } = new SQLocalDrizzle('gtfs.sqlite3')
 
 
 export const db = drizzle({
-  run: async (sql, params) => {await driver(sql, params, 'run')},
-  all: async (sql, params) => (await driver(sql, params, 'all')).rows as unknown[][],
-  get: async (sql, params) => (await driver(sql, params, 'get')).rows,
-  batch: async (queries) => {
-    const results = await batchDriver(
-      queries.map(({ sql, params, method }) => ({ sql, params, method })),
-    )
-    return results.map(({ rows }, i) =>
-      queries[i].method === 'run' ? undefined : rows,
-    )
-  },
+	run: async (sql, params) => { await driver(sql, params, 'run') },
+	all: async (sql, params) => (await driver(sql, params, 'all')).rows as unknown[][],
+	get: async (sql, params) => (await driver(sql, params, 'get')).rows,
+	batch: async (queries) => {
+		const results = await batchDriver(
+			queries.map(({ sql, params, method }) => ({ sql, params, method })),
+		)
+		return results.map(({ rows }, i) =>
+			queries[i].method === 'run' ? undefined : rows,
+		)
+	},
 }, { relations })
 
 export { sql as rawSql }
 
 export async function initDb(): Promise<void> {
-  await sql`PRAGMA journal_mode = WAL`
-  await sql`PRAGMA foreign_keys = ON`
+	await sql`PRAGMA journal_mode = WAL`
+	await sql`PRAGMA foreign_keys = ON`
 
-  await sql`
-CREATE TABLE IF NOT EXISTS 'agencies' (
+	await sql`CREATE TABLE IF NOT EXISTS 'agencies' (
 	'agency_id' text PRIMARY KEY,
 	'agency_name' text NOT NULL,
 	'agency_url' text NOT NULL,
@@ -34,6 +33,25 @@ CREATE TABLE IF NOT EXISTS 'agencies' (
 	'agency_phone' text,
 	'agency_fare_url' text,
 	'agency_email' text
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS 'calendar' (
+	'service_id' text PRIMARY KEY,
+	'monday' integer NOT NULL,
+	'tuesday' integer NOT NULL,
+	'wednesday' integer NOT NULL,
+	'thursday' integer NOT NULL,
+	'friday' integer NOT NULL,
+	'saturday' integer NOT NULL,
+	'sunday' integer NOT NULL,
+	'start_date' text NOT NULL,
+	'end_date' text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS 'calendar_dates' (
+	'service_id' text PRIMARY KEY,
+	'date' text NOT NULL,
+	'exception_type' integer NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS 'import_meta' (
@@ -143,5 +161,5 @@ CREATE INDEX IF NOT EXISTS 'stops_parent_station_idx' ON 'stops' ('parent_statio
 CREATE INDEX IF NOT EXISTS 'stops_location_type_idx' ON 'stops' ('location_type');--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS 'trips_route_id_idx' ON 'trips' ('route_id');--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS 'trips_shape_id_idx' ON 'trips' ('shape_id');
-  `
+`
 }

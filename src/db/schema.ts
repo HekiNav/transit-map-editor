@@ -49,6 +49,25 @@ export const agencies = sqliteTable('agencies', {
     agency_email: text(),
 })
 
+export const calendar = sqliteTable('calendar', {
+    service_id: text().primaryKey(),
+    monday: integer().notNull(),
+    tuesday: integer().notNull(),
+    wednesday: integer().notNull(),
+    thursday: integer().notNull(),
+    friday: integer().notNull(),
+    saturday: integer().notNull(),
+    sunday: integer().notNull(),
+    start_date: text().notNull(),
+    end_date: text().notNull(),
+})
+
+export const calendarDates = sqliteTable('calendar_dates', {
+    service_id: text().primaryKey(),
+    date: text().notNull(),
+    exception_type: integer().notNull(),
+})
+
 export const shapes = sqliteTable('shapes', {
     shape_id: text().notNull(),
     shape_pt_lat: real().notNull(),
@@ -139,6 +158,8 @@ export type Stop = NonNullable<typeof stops.$inferSelect>
 export type StopTime = NonNullable<typeof stopTimes.$inferSelect>
 export type Route = NonNullable<typeof routes.$inferSelect>
 export type Agency = NonNullable<typeof agencies.$inferSelect>
+export type Calendar = NonNullable<typeof calendar.$inferSelect>
+export type CalendarDates = NonNullable<typeof calendarDates.$inferSelect>
 export type Shape = NonNullable<typeof shapes.$inferSelect>
 export type Pattern = NonNullable<typeof patterns.$inferSelect>
 export type PatternStops = NonNullable<typeof patternStops.$inferSelect>

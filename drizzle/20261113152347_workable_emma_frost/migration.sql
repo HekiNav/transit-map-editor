@@ -9,6 +9,25 @@ CREATE TABLE `agencies` (
 	`agency_email` text
 );
 --> statement-breakpoint
+CREATE TABLE `calendar` (
+	`service_id` text PRIMARY KEY,
+	`monday` integer NOT NULL,
+	`tuesday` integer NOT NULL,
+	`wednesday` integer NOT NULL,
+	`thursday` integer NOT NULL,
+	`friday` integer NOT NULL,
+	`saturday` integer NOT NULL,
+	`sunday` integer NOT NULL,
+	`start_date` text NOT NULL,
+	`end_date` text NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE `calendar_dates` (
+	`service_id` text PRIMARY KEY,
+	`date` text NOT NULL,
+	`exception_type` integer NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `import_meta` (
 	`id` integer PRIMARY KEY AUTOINCREMENT,
 	`feed_name` text,
