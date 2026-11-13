@@ -51,7 +51,6 @@ function onSelection() {
                     <div id="stop-search"></div>
                 </div>
                 `
-            console.log(selected.getAdjacentStops().map(s => `${s.stop.stop_name} ${s.patterns.map(p => p.route?.route_short_name).join(" ")}`))
             addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"

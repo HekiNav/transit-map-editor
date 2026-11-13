@@ -243,8 +243,6 @@ async function parseGTFS(data: File) {
         }
     })
 
-    console.log(activeServices)
-
 
     const patternData: { pattern: Pattern, stops: PatternStops[], route: Route }[] = tripData.reduce<{ pattern: Pattern, stops: PatternStops[], route: Route }[]>((p, c) => {
         const stops = stopsByTrip.get(c.trip_id)
@@ -260,7 +258,6 @@ async function parseGTFS(data: File) {
     await batchInsert(patterns, patternData.map(p => p.pattern))
     progress += 0.18
 
-    console.log(patternData)
 
     await db.insert(importMeta).values({
         feed_name: data.name,
@@ -354,7 +351,6 @@ export function addSearch(type: "route" | "stop", container: string, selected: S
                 item.innerHTML = `${route.route_short_name} ${route.route_long_name}`
             }
             item.addEventListener("click", () => {
-                console.log("jdjdjd")
                 setSelected(id)
                 updateResults(results)
             })

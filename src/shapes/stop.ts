@@ -95,5 +95,6 @@ export class StopShape extends SelectableShape {
         this.stops = data
         this.emit("update")
         svg.fire("update")
+        undo.logChange("Update linked stops")
     }
 }
