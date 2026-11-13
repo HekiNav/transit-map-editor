@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initListeners()
     updateHistory()
 
-    new StopShape({ x: 200, y: 0, w: 10, h: 50 })
+    new StopShape({ x: 200, y: 0 })
     setTimeout(() => {
         undo.logChange("Initted test view")
     }, 100)

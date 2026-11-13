@@ -18,7 +18,8 @@ export function save() {
     const blob = new Blob([newSvg.node.outerHTML], { type: "image/svg+xml" })
     saveAs(blob, "map.tm.svg")
 }
-export function load(file: File, undo: UndoSystem) {
+export async function load(_file: File, undo: UndoSystem) {
     if ((undo.canRedo || undo.canUndo) && !confirm("Load file and override current map?")) return
     console.log("LOADING")
+    alert("Loading not implemented")
 }

@@ -12,10 +12,13 @@ export interface AdjacentStop {
 export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
     stops: StopWithRoutes[] = []
-    constructor(pos: { x: number, y: number, w: number, h: number }, id = crypto.randomUUID()) {
-        super(new Rect().size(pos.w, pos.h).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
+    constructor(pos: { x: number, y: number }, id = crypto.randomUUID()) {
+        super(new Rect().size(10, 10).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()
+        this.on("update", () => {
+            this.element.children()[0].width(Math.max(this.stops.flatMap(s => s.patterns).length,1) * 10)
+        })
     }
     getAdjacentStops(): AdjacentStop[] {
         const patterns = this.stops.flatMap(s => s.patterns)

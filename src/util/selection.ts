@@ -42,7 +42,7 @@ function onSelection() {
                     `).join("")}
                     <div class="font-bold">Adjacent stops</div>
                     ${selected.getAdjacentStops().map(s => `
-                        <div class="flex flex-row justify-start items-center gap-1 text-nowrap p-1 border-2 rounded overflow-hidden">
+                        <div class="cursor-pointer flex flex-row justify-start items-center gap-1 text-nowrap p-1 border-2 rounded overflow-hidden">
                             ${s.stop.stop_name} ${s.stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop.stop_code}</span>` : ""} 
                             ${s.stop.platform_code && s.stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.stop.platform_code}</span>` : ""}
                             <span class="h-6 shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5">${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.route?.route_short_name}</span>`).join("") || ""}</span>
