@@ -205,7 +205,7 @@ async function parseGTFS(data: File) {
         if (!list) stopsByTrip.set(row.trip_id, list = [])
         list.push({ stop_id: row.stop_id, stop_sequence: Number(row.stop_sequence) })
     })
-    progress += 0.12
+    progress += 0.17
 
     if (stopData === null || routeData === null || agencyData === null || !tripData) return
 
@@ -251,7 +251,7 @@ async function parseGTFS(data: File) {
         const { trip_id, ...pattern } = c
         return [...p, { pattern: { ...pattern, pattern_id: trip_id }, stops: stops.map<PatternStops>(s => ({ stop_id: s.stop_id, pattern_id: trip_id, stop_sequence: s.stop_sequence })), route: routeData.find(r => (r as Route).route_id == pattern.route_id)! as Route }]
     }, new Array<{ pattern: Pattern, stops: PatternStops[], route: Route }>())
-    progress += 0.23
+    progress += 0.18
 
     log("Pushing patterns to db", progress)
     await batchInsert(patternStops, patternData.flatMap(p => p.stops))

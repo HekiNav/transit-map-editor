@@ -5,6 +5,7 @@ import type { SelectableShape } from "./shape"
 import { addSearch } from "./gtfs"
 import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
+import type { Eventable } from "./event"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -40,7 +41,7 @@ function onSelection() {
                             ${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.pattern?.route?.route_short_name}</span>`).join("") || ""}</span>
                         </div>
                     `).join("")}
-                    <div class="font-bold">Adjacent stops</div>
+                    <div class="font-bold">Adjacent stops (Click to place)</div>
                     ${selected.getAdjacentStops().map(s => `
                         <div class="cursor-pointer flex flex-row justify-start items-center gap-1 text-nowrap p-1 border-2 rounded overflow-hidden">
                             ${s.stop.stop_name} ${s.stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop.stop_code}</span>` : ""} 
@@ -87,10 +88,15 @@ export function select(el: SelectableShape, reset = true, value?: boolean) {
 }
 
 // reload bounding boxes
+let bboxListeners: [Function, Eventable<"modification">][]  = []
 export function reloadBBs() {
     selectionIndicators.forEach(el => el.element.remove())
+    bboxListeners.forEach(([l,e]) => e.off("modification",l))
 
     selectedElements.forEach(el => {
+        let listener = () => reloadBBs
+        el.once("modification", listener)
+        bboxListeners.push([listener, el])
         selectionIndicators.push(new SelectionIndicator(el.element))
     })
 }

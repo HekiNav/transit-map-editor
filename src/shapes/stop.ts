@@ -1,5 +1,6 @@
 import { Rect } from "@svgdotjs/svg.js";
 import { SelectableShape } from "../util/shape";
+import { SectionShape } from "./section";
 import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";
 import { transpose } from "../util/math"
@@ -11,13 +12,17 @@ export interface AdjacentStop {
 
 export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
+    sections = new Set<SectionShape>()
     stops: StopWithRoutes[] = []
     constructor(pos: { x: number, y: number }, id = crypto.randomUUID()) {
         super(new Rect().size(10, 10).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()
-        this.on("update", () => {
+        this.on("modification", () => {
             this.element.children()[0].width(Math.max(this.stops.flatMap(s => s.patterns).length,1) * 10)
+        })
+        this.on("remove", () => {
+            this.sections.forEach(s => s.remove())
         })
     }
     getAdjacentStops(): AdjacentStop[] {
@@ -65,6 +70,12 @@ export class StopShape extends SelectableShape {
     #updateElementGTFSIds() {
         this.element.node.setAttribute("data-gtfs-ids", this.gtfsIds.keys().toArray().join(","))
     }
+    linkSection(s: SectionShape) {
+        this.sections.add(s)
+    }
+    unlinkSection(s: SectionShape) {
+        this.sections.delete(s)
+    }
     async #updateStops() {
         const data = await db.query.stops.findMany({
             where: {
@@ -93,7 +104,7 @@ export class StopShape extends SelectableShape {
             withCache: true
         })
         this.stops = data
-        this.emit("update")
+        this.emit("modification")
         svg.fire("update")
         undo.logChange("Update linked stops")
     }

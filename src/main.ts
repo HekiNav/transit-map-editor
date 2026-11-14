@@ -18,7 +18,7 @@ import './style.css'
 import "toastify-js/src/toastify.css"
 import { elementSize } from './util/html'
 import { Grid } from './util/grid'
-import { clearSelection } from './util/selection'
+import { clearSelection, getSelection } from './util/selection'
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"
@@ -93,6 +93,9 @@ window.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).code == "Escape") setMode("move")
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")
+    if ((e as KeyboardEvent).code == "Delete") {
+        getSelection().forEach(el => el.remove())
+    }
     if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
         clearSelection()
         if (e.shiftKey) {
