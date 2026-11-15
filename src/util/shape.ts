@@ -6,11 +6,14 @@ export type ShapeType = "basic_circle" | "stop" | "route" | "section"
 
 export class SelectableShape extends Eventable<"modification" | "remove"> {
     element: Element;
+    id: string
     constructor(el: Element, id: string, type: ShapeType, selected = false) {
         super("modification", "remove")
         this.element = svg.group()
             .add(el)
         if (selected) select(this)
+
+        this.id = id
 
         this.element.data("type", type)
         this.element.id(id)

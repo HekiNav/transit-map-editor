@@ -47,6 +47,7 @@ export class StopShape extends SelectableShape {
                 lastStops: p.lastStops.slice(0, endIndex + 1)
             }
         }))
+        const connectedStops = new Set(this.sections.values().flatMap(v => v.start.id === this.id ? v.end.stops : v.start.stops).map(e => e.stop_id))
         return patternGroups.map(g => ({
             stop: transpose(g.map(p => p.lastStops)).reduce<(Stop | null)>((prev, curr) => {
                 return curr.every((s) => s && s.stop_id === curr[0].stop_id) ? curr[0] : prev
@@ -59,7 +60,7 @@ export class StopShape extends SelectableShape {
                 return [...prev, { stop: curr.stop, patterns: [...otherStop.patterns, ...curr.patterns] }]
             }
             return [...prev, curr]
-        }, new Array<AdjacentStop>())
+        }, new Array<AdjacentStop>()).filter(e => !connectedStops.has(e.stop.stop_id))
     }
     toggleId(id: string) {
         if (this.gtfsIds.has(id)) this.gtfsIds.delete(id)
