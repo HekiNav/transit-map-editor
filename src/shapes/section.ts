@@ -19,17 +19,26 @@ export class SectionShape extends SelectableShape {
         this.on("remove", () => {
             this.start.unlinkSection(this)
             this.end.unlinkSection(this)
-            this.start.off("modification", () => this.refreshSection())
-            this.end.off("modification", () => this.refreshSection())
+            this.start.off("modification", () => this.onModification())
+            this.end.off("modification", () => this.onModification())
         })
-        this.start.on("modification", () => this.refreshSection())
-        this.end.on("modification", () => this.refreshSection())
+        this.start.on("modification", () => this.onModification())
+        this.end.on("modification", () => this.onModification())
+    }
+    onModification() {
+        this.#updatePatterns()
+        this.refreshSection()
+    }
+    #updatePatterns() {
+        this.patterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => p && this.end.stops.some(s => s.patterns.some(e => e.pattern_id == p.pattern_id)))
     }
     refreshSection() {
         this.routes.forEach(r => r.remove())
-        this.routes.push(new RouteShape([
-            [Number(this.start.element.x()) + 5, Number(this.start.element.y()) + 5],
-            [Number(this.end.element.x()) + 5, Number(this.end.element.y()) + 5]
-        ]))
+        this.patterns.forEach((p, i) => {
+            this.routes.push(new RouteShape([
+                [Number(this.start.element.x()) + 5 + i * 10, Number(this.start.element.y()) + 5],
+                [Number(this.end.element.x()) + 5 + i * 10, Number(this.end.element.y()) + 5]
+            ]))
+        })
     }
 }
