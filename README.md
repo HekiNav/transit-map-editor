@@ -4,6 +4,7 @@ A transit map editor that uses GTFS data to guide the map making. Runs completel
 ## Current features
 - GTFS importing (url and file upload)
     - The GTFS is parsed and processed, then pushed into a sqlite DB running in OPFS (origin private file system), which allows the caching of large datasets
+    - Stop searching
 - Basic editor
     - SVG-based for easier saving
     - Object selection and moving
