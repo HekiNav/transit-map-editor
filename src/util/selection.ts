@@ -58,10 +58,13 @@ function onSelection() {
                 `
                 selectionCont.appendChild(item)
                 item.addEventListener("click", () => {
-                    const stop = new StopShape({x: Number(selected.element.x()), y: Number(selected.element.y()) + 50})
-                    stop.toggleId(s.stop.stop_id)
-                    const section = new SectionShape(selected, stop)
-                    
+                    const stop = graph.stops.values().find(st => st.gtfsIds.has(s.stop.stop_id)) || (() => {
+                        const newStop = new StopShape({x: Number(selected.element.x()), y: Number(selected.element.y()) + 50})
+                        newStop.toggleId(s.stop.stop_id)
+                        return newStop
+                    })()
+                    stop.emit("modification")
+                    new SectionShape(selected, stop)
                 })
             })
             addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))

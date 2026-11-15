@@ -8,10 +8,15 @@ Object.defineProperty(window, "undo", {
     value: new UndoSystem(),
     writable: false
 })
+Object.defineProperty(window, "graph", {
+    value: new Graph(),
+    writable: false
+})
 
 declare global {
     const svg: Svg
     const undo: UndoSystem
+    const graph: Graph
 }
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'
@@ -19,6 +24,7 @@ import "toastify-js/src/toastify.css"
 import { elementSize } from './util/html'
 import { Grid } from './util/grid'
 import { clearSelection, getSelection } from './util/selection'
+import { Graph } from "./util/graph"
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
 import { initListeners } from "./util/gtfs"

@@ -2,7 +2,7 @@ import { Element } from "@svgdotjs/svg.js"
 import { getSelection, select } from "./selection";
 import { Eventable } from "./event"
 
-export type ShapeType = "basic_circle" | "stop" | "route" | "section"
+export type ShapeType = "basic_circle" | "stop" | "route_section" | "section"
 
 export class SelectableShape extends Eventable<"modification" | "remove"> {
     element: Element;
