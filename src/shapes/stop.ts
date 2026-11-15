@@ -14,7 +14,7 @@ export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
     sections = new Set<SectionShape>()
     stops: StopWithRoutes[] = []
-    constructor(pos: { x: number, y: number }, id = crypto.randomUUID()) {
+    constructor(pos: { x: number, y: number }, id = crypto.randomUUID(), ) {
         super(new Rect().size(10, 10).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()

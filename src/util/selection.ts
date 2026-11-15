@@ -6,11 +6,12 @@ import { addSearch } from "./gtfs"
 import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
+import { SectionShape } from "../shapes/section"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
 
-let movingElements: { e: Element, offset: ArrayXY }[] = []
+let movingElements: { e: Element, s: SelectableShape, offset: ArrayXY }[] = []
 
 const selectionCont = document.querySelector("#selection")!
 
@@ -41,17 +42,28 @@ function onSelection() {
                             ${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.pattern?.route?.route_short_name}</span>`).join("") || ""}</span>
                         </div>
                     `).join("")}
-                    <div class="font-bold">Adjacent stops (Click to place)</div>
-                    ${selected.getAdjacentStops().map(s => `
-                        <div class="cursor-pointer flex flex-row justify-start items-center gap-1 text-nowrap p-1 border-2 rounded overflow-hidden">
-                            ${s.stop.stop_name} ${s.stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop.stop_code}</span>` : ""} 
-                            ${s.stop.platform_code && s.stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.stop.platform_code}</span>` : ""}
-                            <span class="h-6 shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5">${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.route?.route_short_name}</span>`).join("") || ""}</span>
-                        </div>
-                    `).join("")}
                     <div id="stop-search"></div>
+
+                    <div class="font-bold">Adjacent stops (Click to place)</div>
+                    
                 </div>
                 `
+            selected.getAdjacentStops().forEach(s => {
+                const item = document.createElement("div")
+                item.classList.add("cursor-pointer", "flex", "flex-row", "justify-start", "items-center", "gap-1", "text-nowrap", "p-1", "border-2", "rounded", "overflow-hidden")
+                item.innerHTML = `
+                    ${s.stop.stop_name} ${s.stop.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop.stop_code}</span>` : ""} 
+                    ${s.stop.platform_code && s.stop.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.stop.platform_code}</span>` : ""}
+                    <span class="h-6 shrink overflow-x-scroll flex-nowrap flex w-fit gap-0.5">${s.patterns?.map(e => `<span class="bg-green-500 px-1 text-xs rounded h-min">${e.route?.route_short_name}</span>`).join("") || ""}</span>
+                `
+                selectionCont.appendChild(item)
+                item.addEventListener("click", () => {
+                    const stop = new StopShape({x: Number(selected.element.x()), y: Number(selected.element.y()) + 50})
+                    stop.toggleId(s.stop.stop_id)
+                    const section = new SectionShape(selected, stop)
+                    
+                })
+            })
             addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"
@@ -88,10 +100,10 @@ export function select(el: SelectableShape, reset = true, value?: boolean) {
 }
 
 // reload bounding boxes
-let bboxListeners: [Function, Eventable<"modification">][]  = []
+let bboxListeners: [Function, Eventable<"modification">][] = []
 export function reloadBBs() {
     selectionIndicators.forEach(el => el.element.remove())
-    bboxListeners.forEach(([l,e]) => e.off("modification",l))
+    bboxListeners.forEach(([l, e]) => e.off("modification", l))
 
     selectedElements.forEach(el => {
         let listener = () => reloadBBs
@@ -108,6 +120,7 @@ window.addEventListener("DOMContentLoaded", () => {
             svg.data('panZoomEnabled', true)
         }
         if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`)
+        movingElements.forEach(el => el.s.emit("modification"))
         movingElements = []
         setTimeout(() => svg.data("moving", false), 1)
     })
@@ -134,6 +147,7 @@ export class SelectionIndicator {
             svg.data('panZoomEnabled', false)
             movingElements = selectedElements.map(e => ({
                 e: e.element,
+                s: e,
                 offset: [
                     e.element.cx() / scale - (ev as MouseEvent).offsetX,
                     e.element.cy() / scale - (ev as MouseEvent).offsetY

@@ -4,6 +4,6 @@ import type { ArrayXY } from "@svgdotjs/svg.js";
 
 export class RouteShape extends SelectableShape {
     constructor(points: ArrayXY[], id = crypto.randomUUID()) {
-        super(new Polyline().plot(points), id, "route")
+        super(new Polyline().plot(points).stroke({color: "#f00", width: 8, linecap: "round"}), id, "route")
     }
 }
