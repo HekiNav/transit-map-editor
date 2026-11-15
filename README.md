@@ -15,3 +15,4 @@ A transit map editor that uses GTFS data to guide the map making. Runs completel
 1. Start dev server: `npm run dev`
 2. Compile production build: `npm run build`
 2. Preview production build: `npm run preview`
+2. Deploy to Cloudflare Workers: `npm run preview`
