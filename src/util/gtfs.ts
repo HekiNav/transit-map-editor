@@ -3,7 +3,8 @@ import { Unzip, UnzipInflate } from "fflate"
 import { db, initDb, rawSql } from "../db/init"
 import { agencies, calendar, calendarDates, importMeta, patterns, patternStops, routes, stops, type Agency, type Calendar, type CalendarDates, type Pattern, type PatternStops, type Route, type Stop, type StopTime, type Trip } from '../db/schema'
 import MiniSearch, { type SearchResult } from 'minisearch'
-import type { InferInsertModel } from 'drizzle-orm'
+import type {InferInsertModel } from 'drizzle-orm'
+import { commonSubsequence } from './math'
 
 const urlInput: HTMLInputElement = document.querySelector("#gtfs-url")!
 const urlInputSubmit = document.querySelector("#gtfs-url-load")!
@@ -110,12 +111,12 @@ async function reloadGTFSFacts() {
     gtfsFacts.hidden = !facts || !facts.feed_name
     gtfsNone.hidden = !!facts && !!facts.feed_name
     if (!facts || !facts.feed_name) {
-        gtfsImports.textContent = "GTFS Import ❌"
+        gtfsImports.innerHTML = 'GTFS Import <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="red" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>'
         gtfsImport.open = true
         return
     }
     gtfsImport.open = false
-    gtfsImports.textContent = "GTFS Import ✔️"
+    gtfsImports.innerHTML = 'GTFS Import <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="green" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>'
 
     gtfsFeed.textContent = facts.feed_name
     gtfsTime.textContent = new Date(facts.imported_at).toISOString()
@@ -293,17 +294,32 @@ async function ingestGTFSTable<T extends typeof gtfsTables[number][1]>(result: I
     return result
 }
 
-export function addSearch(type: "route" | "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {
+export async function addSearch(type: "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {
+    const selectedData = await db.query.stops.findMany({where: {stop_id: {in: Array.from(selected.values())}}})
     const cont = document.querySelector(container)
     if (!cont) return
     const div = document.createElement("div")
-    div.classList.add("w-full", "border-2", "rounded", "p-1")
+    div.classList.add("w-full", "border-2", "rounded", "p-1", "relative")
 
     const input = document.createElement("input")
-    input.classList.add("w-full")
+    input.classList.add("w-full", "search-box")
     input.placeholder = "Search for " + type + "s"
     input.value = localStorage.getItem(`last-${type}-query`) || ""
     div.appendChild(input)
+
+    const buttonContainer = document.createElement("button")
+    buttonContainer.classList.add("absolute", "p-1", "top-0", "right-0")
+    div.appendChild(buttonContainer)
+
+    const fillStopName = document.createElement("button")
+    fillStopName.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#000" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" /></svg>'
+    fillStopName.addEventListener("click", () => {input.value = commonSubsequence(selectedData.map(s => s.stop_name)) || input.value; onInput()})
+    buttonContainer.appendChild(fillStopName)
+
+    const clearButton = document.createElement("button")
+    clearButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#000" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>'
+    clearButton.addEventListener("click", () => {input.value = ""; onInput()})
+    buttonContainer.appendChild(clearButton)
 
     const resultList = document.createElement("div")
     resultList.classList.add("flex", "w-full", "gap-1", "flex-col")

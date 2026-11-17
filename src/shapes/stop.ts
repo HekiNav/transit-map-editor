@@ -70,6 +70,11 @@ export class StopShape extends SelectableShape {
         this.#updateElementGTFSIds()
         this.#updateStops()
     }
+    addId(id: string) {
+        this.gtfsIds.add(id)
+        this.#updateElementGTFSIds()
+        this.#updateStops()
+    }
     #updateElementGTFSIds() {
         this.element.node.setAttribute("data-gtfs-ids", this.gtfsIds.keys().toArray().join(","))
     }

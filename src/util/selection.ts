@@ -26,7 +26,27 @@ function onSelection() {
     if (selection.length == 0) {
         selectionCont.innerHTML = "No selection"
     } else if (selection.length > 1) {
-        selectionCont.innerHTML = `${selection.length} selections`
+        if (selection.every(s => s instanceof StopShape)) {
+            selectionCont.innerHTML = `
+            <div class="font-bold text-lg">${selection.length} Stops</div>
+            `
+            const button = document.createElement("button")
+            button.classList.add("p-1", "border-2", "rounded")
+            button.textContent = "Merge stops"
+            button.addEventListener("click", () => {
+                const [first, ...rest] = selection
+                const linkedIds = rest.flatMap(s => {
+                    s.remove()
+                    return Array.from(s.gtfsIds)
+                })
+                linkedIds.forEach(id => {
+                    first.addId(id)
+                })
+            })
+            selectionCont.appendChild(button)
+        } else {
+            selectionCont.innerHTML = `${selection.length} selections`
+        }
     } else {
         const selected = selection[0]
         if (selected instanceof StopShape) {
@@ -59,7 +79,7 @@ function onSelection() {
                 selectionCont.appendChild(item)
                 item.addEventListener("click", () => {
                     const stop = graph.stops.values().find(st => st.gtfsIds.has(s.stop.stop_id)) || (() => {
-                        const newStop = new StopShape({x: Number(selected.element.x()), y: Number(selected.element.y()) + 50})
+                        const newStop = new StopShape({ x: Number(selected.element.x()), y: Number(selected.element.y()) + 50 })
                         newStop.toggleId(s.stop.stop_id)
                         return newStop
                     })()
