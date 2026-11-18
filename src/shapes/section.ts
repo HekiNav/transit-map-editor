@@ -21,28 +21,45 @@ export class SectionShape extends SelectableShape {
         this.on("remove", () => {
             this.start.unlinkSection(this)
             this.end.unlinkSection(this)
-            this.start.off("modification", () => this.onModification())
-            this.end.off("modification", () => this.onModification())
+            this.start.off("update", () => this.onupdate())
+            this.end.off("update", () => this.onupdate())
         })
-        this.start.on("modification", () => this.onModification())
-        this.end.on("modification", () => this.onModification())
+        this.start.on("update", () => this.onupdate())
+        this.end.on("update", () => this.onupdate())
+        this.refreshSectionRoutes()
     }
-    onModification() {
+    onupdate() {
         this.#updatePatterns()
-        this.refreshSection()
     }
     #updatePatterns() {
-        this.patterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => p && this.end.stops.some(s => s.patterns.some(e => e.pattern_id == p.pattern_id)))
+        const newPatterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => p && this.end.stops.some(s => s.patterns.some(e => e.pattern_id == p.pattern_id)))
+        if (newPatterns.length === this.patterns.length && newPatterns.every((p, i) => this.patterns[i].pattern_id === p.pattern_id)) {
+            // no changes, ignore
+            this.#updateRoutes()
+        } else {
+            this.patterns = newPatterns
+            this.refreshSectionRoutes()
+        }
     }
-    refreshSection() {
+    refreshSectionRoutes() {
         this.routes.forEach(r => r.remove())
-        this.patterns.forEach((p, i) => {
+        this.routes.length = 0
+        this.patterns.reduce((p, c) => p.some(e => e.route_id == c.route_id) ? p : [...p, c], new Array<PatternWithRoute>()).forEach((p) => {
             if (!graph.routes.has(p.route_id)) graph.routes.set(p.route_id, new Route(p.route_id, randomColor()))
             const route = graph.routes.get(p.route_id)!
-            this.routes.push(new RouteSectionShape([
-                [Number(this.start.element.x()) + 5 + i * 10, Number(this.start.element.y()) + 5],
-                [Number(this.end.element.x()) + 5 + i * 10, Number(this.end.element.y()) + 5]
-            ], route))
+            this.routes.push(new RouteSectionShape(route))
+        })
+        this.start.regenerateSlots(this)
+        this.end.regenerateSlots(this)
+        this.#updateRoutes()
+    }
+    #updateRoutes() {
+        this.routes.forEach(r => {
+            const start = this.start.getSlot(r.id)
+            const end = this.end.getSlot(r.id)
+            if (!end || !start) return
+            r.points = [[start.x, start.y], [end.x, end.y]]
+            r.emit("update")
         })
     }
 }

@@ -83,7 +83,7 @@ function onSelection() {
                         newStop.toggleId(s.stop.stop_id)
                         return newStop
                     })()
-                    stop.emit("modification")
+                    stop.emit("update")
                     new SectionShape(selected, stop)
                 })
             })
@@ -123,14 +123,14 @@ export function select(el: SelectableShape, reset = true, value?: boolean) {
 }
 
 // reload bounding boxes
-let bboxListeners: [Function, Eventable<"modification">][] = []
+let bboxListeners: [Function, Eventable<"update">][] = []
 export function reloadBBs() {
     selectionIndicators.forEach(el => el.element.remove())
-    bboxListeners.forEach(([l, e]) => e.off("modification", l))
+    bboxListeners.forEach(([l, e]) => e.off("update", l))
 
     selectedElements.forEach(el => {
         let listener = () => reloadBBs
-        el.once("modification", listener)
+        el.once("update", listener)
         bboxListeners.push([listener, el])
         selectionIndicators.push(new SelectionIndicator(el.element))
     })
@@ -143,7 +143,7 @@ window.addEventListener("DOMContentLoaded", () => {
             svg.data('panZoomEnabled', true)
         }
         if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`)
-        movingElements.forEach(el => el.s.emit("modification"))
+        movingElements.forEach(el => el.s.emit("update"))
         movingElements = []
         setTimeout(() => svg.data("moving", false), 1)
     })

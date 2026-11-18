@@ -4,11 +4,11 @@ import { Eventable } from "./event"
 
 export type ShapeType = "basic_circle" | "stop" | "route_section" | "section"
 
-export class SelectableShape extends Eventable<"modification" | "remove"> {
+export class SelectableShape extends Eventable<"update" | "remove"> {
     element: Element;
     id: string
     constructor(el: Element, id: string, type: ShapeType, selected = false) {
-        super("modification", "remove")
+        super("update", "remove")
         this.element = svg.group()
             .add(el)
         if (selected) select(this)
@@ -38,10 +38,10 @@ export class SelectableShape extends Eventable<"modification" | "remove"> {
         this.emit("remove")
     }
 }
-/* export class Arrow extends Eventable<"modification"> {
+/* export class Arrow extends Eventable<"update"> {
     element: Element;
     constructor(p1: ArrayXY, p2: ArrayXY, w = 4, hW = 2 * w, hL = 2 * w) {
-        super("modification")
+        super("update")
         this.element = new G().addClass("arrow").center(...p1)
         this.element.add(
             svg.line([p1, p2]).stroke({ width: w })

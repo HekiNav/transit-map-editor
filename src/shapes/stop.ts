@@ -9,23 +9,25 @@ export interface AdjacentStop {
     stop: Stop,
     patterns: PatternWithRoute[]
 }
+export type StopSlot = {section: string, route: string} | null
 
 export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
     sections = new Set<SectionShape>()
     stops: StopWithRoutes[] = []
+    #slots: [StopSlot, StopSlot][] = []
     constructor(pos: { x: number, y: number }, id = crypto.randomUUID(),) {
         super(new Rect().size(10, 10).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()
         graph.stops.add(this)
-        this.on("modification", () => {
-            this.element.children()[0].width(Math.max(this.stops.flatMap(s => s.patterns).length, 1) * 10)
-        })
         this.on("remove", () => {
             this.sections.forEach(s => s.remove())
             graph.stops.delete(this)
         })
+    }
+    setWidth(w: number) {
+        this.element.children()[0].width(Math.max(1, w) * 10)
     }
     getAdjacentStops(): AdjacentStop[] {
         const patterns = this.stops.flatMap(s => s.patterns)
@@ -80,9 +82,42 @@ export class StopShape extends SelectableShape {
     }
     linkSection(s: SectionShape) {
         this.sections.add(s)
+        s.routes.forEach(r => this.#slots.push([{section: s.id, route: r.id}, null]))
+        this.#updateSlots()
     }
     unlinkSection(s: SectionShape) {
         this.sections.delete(s)
+        this.#slots.forEach(g => g.forEach(e => {
+            if (e?.section === s.id) e = null
+        }))
+        this.#updateSlots()
+    }
+    regenerateSlots(section: SectionShape) {
+        this.#slots.forEach((g, i) => g.forEach((e, j) => {
+            if (e?.section === section.id) this.#slots[i][j] = null
+        }))
+        console.log(this.#slots, section)
+        section.routes.forEach(r => this.#slots.push([{section: section.id, route: r.id}, null]))
+        this.#updateSlots()
+    }
+    getSlot(route: string) {
+        return this.#slots.reduce<null | {x: number, y: number, direction: {x: number, y: number}}>((p,c,i) => {
+            const index = c.findIndex(s => s?.route == route)
+            if (index == -1 || p !== null) return p
+            else return {
+                x: Number(this.element.x()) + 5 + 10 * i,
+                y: this.element.cy(),
+                direction: {
+                    x: 0,
+                    y: -1
+                }
+            }
+        }, null)
+    }
+    #updateSlots() {
+        this.#slots = this.#slots.filter(([one, two]) => one !== null || two !== null)
+        this.sections.forEach(s => s.emit("update"))
+        this.setWidth(this.#slots.length)
     }
     async #updateStops() {
         const data = await db.query.stops.findMany({
@@ -112,8 +147,9 @@ export class StopShape extends SelectableShape {
             withCache: true
         })
         this.stops = data
-        this.emit("modification")
+        this.emit("update")
         svg.fire("update")
         undo.logChange("Update linked stops")
+        this.sections.forEach(s => this.regenerateSlots(s))
     }
 }
