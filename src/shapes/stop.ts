@@ -9,7 +9,7 @@ export interface AdjacentStop {
     stop: Stop,
     patterns: PatternWithRoute[]
 }
-export type StopSlot = {section: string, route: string} | null
+export type StopSlot = { section: string, route: string, patterns: string[], routes: string[] } | null
 
 export class StopShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
@@ -82,26 +82,31 @@ export class StopShape extends SelectableShape {
     }
     linkSection(s: SectionShape) {
         this.sections.add(s)
-        s.routes.forEach(r => this.#slots.push([{section: s.id, route: r.id}, null]))
+        s.routes.forEach(r => this.#addSlot({ section: s.id, route: r.id, patterns: r.patterns.map(p => p.pattern_id), routes: [...new Set(r.patterns.map(p => p.route_id))] }))
         this.#updateSlots()
+    }
+    #addSlot(s: NonNullable<StopSlot>) {
+        const idxs = this.#slots.reduce<[number, number]>((p, c, i) => c.some(e => e !== null && (e.routes[0] == s.routes[0])) ? [i, c.findIndex(e => e === null)] : p, [-1, -1] as [number, number])
+        if (idxs.every(i => i != -1)) this.#slots[idxs[0]][idxs[1]] = s
+        else this.#slots.push([s, null])
+    }
+    #removeSlots(sid: string) {
+        this.#slots.forEach((g, i) => g.forEach((e, j) => {
+            if (e?.section === sid) this.#slots[i][j] = null
+        }))
     }
     unlinkSection(s: SectionShape) {
         this.sections.delete(s)
-        this.#slots.forEach(g => g.forEach(e => {
-            if (e?.section === s.id) e = null
-        }))
+        this.#removeSlots(s.id)
         this.#updateSlots()
     }
     regenerateSlots(section: SectionShape) {
-        this.#slots.forEach((g, i) => g.forEach((e, j) => {
-            if (e?.section === section.id) this.#slots[i][j] = null
-        }))
-        console.log(this.#slots, section)
-        section.routes.forEach(r => this.#slots.push([{section: section.id, route: r.id}, null]))
+        this.#removeSlots(section.id)
+        section.routes.forEach(r => this.#addSlot({ section: section.id, route: r.id, patterns: r.patterns.map(p => p.pattern_id), routes: [...new Set(r.patterns.map(p => p.route_id))] }))
         this.#updateSlots()
     }
     getSlot(route: string) {
-        return this.#slots.reduce<null | {x: number, y: number, direction: {x: number, y: number}}>((p,c,i) => {
+        return this.#slots.reduce<null | { x: number, y: number, direction: { x: number, y: number } }>((p, c, i) => {
             const index = c.findIndex(s => s?.route == route)
             if (index == -1 || p !== null) return p
             else return {

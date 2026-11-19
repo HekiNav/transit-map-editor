@@ -27,6 +27,7 @@ export class SectionShape extends SelectableShape {
         this.start.on("update", () => this.onupdate())
         this.end.on("update", () => this.onupdate())
         this.refreshSectionRoutes()
+        this.onupdate()
     }
     onupdate() {
         this.#updatePatterns()
@@ -44,10 +45,16 @@ export class SectionShape extends SelectableShape {
     refreshSectionRoutes() {
         this.routes.forEach(r => r.remove())
         this.routes.length = 0
-        this.patterns.reduce((p, c) => p.some(e => e.route_id == c.route_id) ? p : [...p, c], new Array<PatternWithRoute>()).forEach((p) => {
-            if (!graph.routes.has(p.route_id)) graph.routes.set(p.route_id, new Route(p.route_id, randomColor()))
-            const route = graph.routes.get(p.route_id)!
-            this.routes.push(new RouteSectionShape(route))
+        this.patterns.reduce((p, c) => {
+            const index = p.findIndex(e => e[0].route_id == c.route_id)
+            if (index == -1) return [...p, [c]]
+            p[index].push(c)
+            return p
+        }, new Array<PatternWithRoute[]>()).forEach((p) => {
+            if (!graph.routes.has(p[0].route_id)) graph.routes.set(p[0].route_id, new Route(p[0].route_id, randomColor()))
+            const route = graph.routes.get(p[0].route_id)!
+            console.log(p)
+            this.routes.push(new RouteSectionShape(route, p))
         })
         this.start.regenerateSlots(this)
         this.end.regenerateSlots(this)
