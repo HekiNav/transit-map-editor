@@ -1,7 +1,7 @@
 import { type SearchResult } from "minisearch"
 import { db } from "../db/init"
-import { routeSearch, stopSearch } from "./gtfs"
-import { commonSubsequence } from "./math"
+import { routeSearch, stopSearch } from "../util/gtfs"
+import { commonSubsequence } from "../util/math"
 import { type Route, type Stop } from "../db/schema"
 
 export async function addSearch(type: "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {

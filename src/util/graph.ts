@@ -5,6 +5,6 @@ export class Graph {
     stops = new Set<StopShape>()
     routes = new Map<string, Route>()
     constructor() {
-
+        
     }
 }

@@ -2,8 +2,8 @@ import type { ArrayXY } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
 import type { SelectableShape } from "./shape"
-import { addSearch } from "./stop_search"
-import { addSlotEditor } from "./slot_editor"
+import { addSearch } from "../ui/stop_search"
+import { addSlotEditor } from "../ui/slot_editor"
 import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
@@ -65,10 +65,11 @@ function onSelection() {
                     `).join("")}
                     <div id="stop-search"></div>
 
-                    <div class="font-bold">Adjacent stops (Click to place)</div>
-
                     <div class="font-bold">Stop slots</div>
                     <div id="stop-slots"></div>
+
+                    <div class="font-bold">Adjacent stops (Click to place)</div>
+
                 </div>
                 `
             selected.getAdjacentStops().forEach(s => {

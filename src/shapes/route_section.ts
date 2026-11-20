@@ -17,5 +17,6 @@ export class RouteSectionShape extends SelectableShape {
             this.element.children().each(c => c.remove())
             this.element.add(new Polyline().plot(this.points).stroke({color: route.color, width: 8, linecap: "round"}))
         })
+        svg.on("graph_update", () => this.emit("update"))
     }
 }

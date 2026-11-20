@@ -46,10 +46,11 @@ export function addSlotEditor(element: string, getSlots: () => [StopSlot, StopSl
             s.forEach((d, j) => {
                 const slot = document.createElement("div")
                 const route = d && d != "new" ? graph.routes.get(d.routes[0]) : null
-                slot.classList.add("rounded", "w-10", "h-10", "flex", "items-center", "justify-center")
+                slot.classList.add("rounded", "w-10", "h-10", "flex", "items-center", "justify-center", "text-white")
                 slot.style.backgroundColor = d == "new" ? "#ccc" : route?.color || "#999"
                 if (route) slot.style.cursor = "pointer"
                 if (d == "new") slot.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#777" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>'
+                else if (d) slot.innerHTML = d.routes.map(r => {const d = graph.routes.get(r); return d?.shortName || d?.longName}).join("<br>")
                 slot.addEventListener("mouseenter", () => activeSlot = [i, j])
                 slot.addEventListener("mouseleave", () => activeSlot = null)
                 col.appendChild(slot)
