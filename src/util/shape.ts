@@ -9,8 +9,11 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     id: string
     constructor(el: Element, id: string, type: ShapeType, selected = false) {
         super("update", "remove")
+        let group = svg.findOne("#group-"+type)
+        if (!group) group = svg.group().id("group-"+type)
         this.element = svg.group()
             .add(el)
+        group.add(this.element)
         if (selected) select(this)
 
         this.id = id

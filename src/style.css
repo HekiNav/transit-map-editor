@@ -38,3 +38,7 @@ summary::after {
 details[open] > summary::after {
   transform: rotate(90deg);
 }
+[data-type="stop"] {
+  z-index: 10;
+  position: relative;
+}

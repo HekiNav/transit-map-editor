@@ -26,6 +26,7 @@ export class SectionShape extends SelectableShape {
         })
         this.start.on("update", () => this.onupdate())
         this.end.on("update", () => this.onupdate())
+        this.on("update", () => this.onupdate())
         this.refreshSectionRoutes()
         this.onupdate()
     }

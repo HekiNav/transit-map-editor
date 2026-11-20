@@ -2,7 +2,8 @@ import type { ArrayXY } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "../main"
 import type { SelectableShape } from "./shape"
-import { addSearch } from "./gtfs"
+import { addSearch } from "./stop_search"
+import { addSlotEditor } from "./slot_editor"
 import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
@@ -65,7 +66,9 @@ function onSelection() {
                     <div id="stop-search"></div>
 
                     <div class="font-bold">Adjacent stops (Click to place)</div>
-                    
+
+                    <div class="font-bold">Stop slots</div>
+                    <div id="stop-slots"></div>
                 </div>
                 `
             selected.getAdjacentStops().forEach(s => {
@@ -88,6 +91,9 @@ function onSelection() {
                 })
             })
             addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
+            addSlotEditor("#stop-slots", () => selected.getAllSlots(), (i, j, s) => {
+                selected.setSlot(i, j, s)
+            })
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"
         }

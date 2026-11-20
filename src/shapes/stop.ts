@@ -119,6 +119,15 @@ export class StopShape extends SelectableShape {
             }
         }, null)
     }
+    getAllSlots() {
+        return this.#slots
+    }
+    setSlot(i: number, j: number, s: StopSlot | null) {
+        if (i > this.#slots.length || j >= 2) return
+        if ( i == this.#slots.length) this.#slots.push([null, null])
+        this.#slots[i][j] = s
+        this.#updateSlots()
+    }
     #updateSlots() {
         this.#slots = this.#slots.filter(([one, two]) => one !== null || two !== null)
         this.sections.forEach(s => s.emit("update"))

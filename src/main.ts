@@ -31,9 +31,12 @@ import { initListeners } from "./util/gtfs"
 import type { PanZoomOptions } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
 import { load, save } from './util/save'
+import type { ShapeType } from './util/shape'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
+
+const DRAW_ORDER: ShapeType[] = ["basic_circle", "route_section", "section", "stop"]
 
 export const PAN_ZOOM_OPTIONS: PanZoomOptions = {
     zoomFactor: 0.5,
@@ -49,6 +52,7 @@ svg.addTo("#map")
 svg.data('panZoomEnabled', true)
 
 
+
 window.addEventListener("resize", () => {
     svg.size(...elementSize("#map").toSizeArr())
 })
@@ -56,6 +60,10 @@ window.addEventListener("resize", () => {
 
 // create example
 new Grid()
+
+DRAW_ORDER.forEach(t => {
+    svg.group().id(`group-${t}`)
+})
 
 document.querySelectorAll(".mode-button").forEach((el) => {
     el.addEventListener("click", () => setMode(el.getAttribute("data-mode") || "move"))
