@@ -5,9 +5,10 @@ import { commonSubsequence } from "../util/math"
 import { type Route, type Stop } from "../db/schema"
 
 export async function addSearch(type: "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {
-    const selectedData = await db.query.stops.findMany({where: {stop_id: {in: Array.from(selected.values())}}})
+    const selectedData = await db.query.stops.findMany({ where: { stop_id: { in: Array.from(selected.values()) } } })
     const cont = document.querySelector(container)
-    if (!cont) return
+    if (!cont || cont.hasAttribute("data-consumed")) return
+    cont.setAttribute("data-consumed", "")
     const div = document.createElement("div")
     div.classList.add("w-full", "border-2", "rounded", "p-1", "relative")
 
@@ -21,19 +22,36 @@ export async function addSearch(type: "stop", container: string, selected: Set<s
     buttonContainer.classList.add("absolute", "p-1", "top-0", "right-0")
     div.appendChild(buttonContainer)
 
+    const resultList = document.createElement("div")
+    resultList.classList.add("flex", "w-full", "gap-1", "flex-col")
+    div.appendChild(resultList)
+
+    const selectAll = document.createElement("button")
+
+    let results: string[] = []
+
+    selectAll.addEventListener("click", () => {
+        if (results.every(r => selected.has(r))) {
+            results.forEach(r => setSelected(r))
+        } else {
+            results.filter(r => !selected.has(r)).forEach(r => setSelected(r))
+        }
+    })
+    buttonContainer.appendChild(selectAll)
+
     const fillStopName = document.createElement("button")
     fillStopName.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#000" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" /></svg>'
-    fillStopName.addEventListener("click", () => {input.value = commonSubsequence(selectedData.map(s => s.stop_name)) || input.value; onInput()})
+    fillStopName.title = "Autofill from linked stop"
+    fillStopName.addEventListener("click", () => { input.value = commonSubsequence(selectedData.map(s => s.stop_name)) || input.value; onInput() })
     buttonContainer.appendChild(fillStopName)
 
     const clearButton = document.createElement("button")
     clearButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="#000" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>'
-    clearButton.addEventListener("click", () => {input.value = ""; onInput()})
+    clearButton.title = "Clear search field"
+    clearButton.addEventListener("click", () => { input.value = ""; onInput() })
     buttonContainer.appendChild(clearButton)
 
-    const resultList = document.createElement("div")
-    resultList.classList.add("flex", "w-full", "gap-1", "flex-col")
-    div.appendChild(resultList)
+
 
     input.addEventListener("input", onInput)
 
@@ -48,16 +66,24 @@ export async function addSearch(type: "stop", container: string, selected: Set<s
         if (query.length >= 2) {
             const searcher = (type == "stop" ? stopSearch : routeSearch)
             const results: SearchResult[] = searcher.search(query, {
-                fuzzy: 0.2,
+                fuzzy: 0.05,
                 prefix: true,
             })
             updateResults(results)
         }
     }
 
-    function updateResults(results: SearchResult[]) {
-        resultList.innerHTML = ""
-        results.slice(0, 10).forEach((r) => {
+    function updateResults(rs: SearchResult[]) {
+        results = rs.map(e => e.stop_id)
+        selectAll.innerHTML = results.every(e => selected.has(e)) ?
+            '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>' :
+            '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>'
+        selectAll.title = results.every(e => selected.has(e)) ?
+            'Deselect all' :
+            'Select all'
+        
+            resultList.innerHTML = ""
+        rs.slice(0, 10).forEach((r) => {
             const item = document.createElement("div")
             item.classList.add("search-item", "flex", "flex-row", "justify-start", "items-center", "gap-1", "text-nowrap")
             let id = ""
@@ -78,7 +104,7 @@ export async function addSearch(type: "stop", container: string, selected: Set<s
             }
             item.addEventListener("click", () => {
                 setSelected(id)
-                updateResults(results)
+                updateResults(rs)
             })
             resultList.appendChild(item)
         })

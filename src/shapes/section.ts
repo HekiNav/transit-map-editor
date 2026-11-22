@@ -5,6 +5,7 @@ import { StopShape } from "./stop";
 import { RouteSectionShape } from "./route_section"
 import { Route } from "../util/route";
 import { randomColor } from "../util/color"
+import type { ArrayXY } from "@svgdotjs/svg.js";
 
 export class SectionShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
@@ -12,6 +13,7 @@ export class SectionShape extends SelectableShape {
     end: StopShape
     patterns: PatternWithRoute[] = []
     routes: RouteSectionShape[] = []
+    path: ArrayXY[] = []
     constructor(start: StopShape, end: StopShape, id = crypto.randomUUID()) {
         super(new G(), id, "section")
         this.start = start
@@ -54,7 +56,7 @@ export class SectionShape extends SelectableShape {
         }, new Array<PatternWithRoute[]>()).forEach((p) => {
             if (!graph.routes.has(p[0].route_id)) graph.routes.set(p[0].route_id, new Route(p[0].route_id, p[0].route?.route_long_name!, p[0].route?.route_short_name || undefined, randomColor()))
             const route = graph.routes.get(p[0].route_id)!
-            this.routes.push(new RouteSectionShape(route, p))
+            this.routes.push(new RouteSectionShape(this, route, p))
         })
         this.start.regenerateSlots(this)
         this.end.regenerateSlots(this)

@@ -10,6 +10,7 @@ A transit map editor that uses GTFS data to guide the map making. Runs completel
     - Object selection and moving
     - Two modes: Draw and move
     - Stop editing and linking
+    - Undiong/redoing system (very broken ATM)
 
 ## Usage
 

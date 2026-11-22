@@ -47,3 +47,7 @@ details[open] > summary::after {
   overflow: hidden;
   border-radius: 0.25rem;
 }
+
+.slot-tile {
+  user-select: none;
+}

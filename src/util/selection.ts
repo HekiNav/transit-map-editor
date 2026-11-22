@@ -9,6 +9,7 @@ import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
 import { SectionShape } from "../shapes/section"
 import {addGraphRouteEditor} from "../ui/graph_route_editor"
+import { RouteSectionShape } from "../shapes/route_section"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -52,11 +53,12 @@ function onSelection() {
     } else {
         const selected = selection[0]
         if (selected instanceof StopShape) {
+            if (!selected.stops) return
             selectionCont.innerHTML = `
                 <div class="flex flex-col gap-1 w-full h-full overflow-y-scroll">
                     <div class="font-bold text-lg">Stop</div>
                     <div class="font-bold">Linked stops</div>
-                    ${selected.stops.map(s => `
+                    ${(selected.stops || []).map(s => `
                         <div class="flex flex-row justify-start items-center gap-1 text-nowrap overflow-hidden">
                             ${s.stop_name} ${s.stop_code?.length ? `<span class="text-nowrap bg-neutral-300 px-1 font-sm rounded">${s.stop_code}</span>` : ""} 
                             ${s.platform_code && s.platform_code.replaceAll(" ", "").length > 0 ? `<span class="bg-neutral-300 text-nowrap px-1 font-sm rounded">pl. ${s.platform_code}</span>` : ""}
@@ -102,6 +104,21 @@ function onSelection() {
             addGraphRouteEditor("#stop-routes", selected.sections.values().flatMap(s => s.routes.flatMap(r => r.route.gtfsId)).toArray())
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"
+        } else if (selected instanceof RouteSectionShape) {
+            select(selected.section, true)
+        } else if (selected instanceof SectionShape) {
+            selectionCont.innerHTML = `
+                <div class="flex flex-col gap-1 w-full h-full overflow-y-scroll">
+                    <div class="font-bold text-lg">Section</div>
+
+                    <div class="font-bold">Routes</div>
+                    <div id="section-routes"></div>
+
+                </div>
+            `
+            console.log()
+            addGraphRouteEditor("#section-routes", selected.routes.map(r => r.route.gtfsId))
+
         }
     }
 }

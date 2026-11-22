@@ -30,6 +30,7 @@ export class StopShape extends SelectableShape {
         this.element.children()[0].width(Math.max(1, w) * config.stop_size)
     }
     getAdjacentStops(): AdjacentStop[] {
+        if (!this.stops) return []
         const patterns = this.stops.flatMap(s => s.patterns)
         const patternGroups = patterns.reduce((prev, curr) => {
             const index = curr.pattern?.stops.findLastIndex(s => s.stop_id == curr.stop_id && s.stop_sequence == curr.stop_sequence)
@@ -129,7 +130,8 @@ export class StopShape extends SelectableShape {
         this.#updateSlots()
     }
     #updateSlots() {
-        this.#slots = this.#slots.filter(([one, two]) => one !== null || two !== null)
+        if (this.#slots[this.#slots.length -1]?.every(e => e === null)) this.#slots.pop()
+        //if (this.#slots[0]?.every(e => e === null)) this.#slots.splice(0,1)
         this.sections.forEach(s => s.emit("update"))
         this.setWidth(this.#slots.length)
     }

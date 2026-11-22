@@ -141,7 +141,9 @@ async function reloadSearches() {
     await routeSearch.addAllAsync(routes)
     console.log("SEARCHES INITTED", stops, routes)
     Toastify({
-        text: "Search engine loaded"
+        text: "Search engine loaded",
+        className: "text-black! bg-white! border-2 border-black rounded! p-2!",
+        style: { background: "white", "box-shadow": "none" }
     }).showToast()
 }
 
