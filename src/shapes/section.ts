@@ -54,7 +54,6 @@ export class SectionShape extends SelectableShape {
         }, new Array<PatternWithRoute[]>()).forEach((p) => {
             if (!graph.routes.has(p[0].route_id)) graph.routes.set(p[0].route_id, new Route(p[0].route_id, p[0].route?.route_long_name!, p[0].route?.route_short_name || undefined, randomColor()))
             const route = graph.routes.get(p[0].route_id)!
-            console.log(p)
             this.routes.push(new RouteSectionShape(route, p))
         })
         this.start.regenerateSlots(this)

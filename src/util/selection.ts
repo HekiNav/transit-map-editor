@@ -8,6 +8,7 @@ import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
 import { SectionShape } from "../shapes/section"
+import {addGraphRouteEditor} from "../ui/graph_route_editor"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -68,6 +69,9 @@ function onSelection() {
                     <div class="font-bold">Stop slots</div>
                     <div id="stop-slots"></div>
 
+                    <div class="font-bold">Routes</div>
+                    <div id="stop-routes"></div>
+
                     <div class="font-bold">Adjacent stops (Click to place)</div>
 
                 </div>
@@ -95,6 +99,7 @@ function onSelection() {
             addSlotEditor("#stop-slots", () => selected.getAllSlots(), (i, j, s) => {
                 selected.setSlot(i, j, s)
             })
+            addGraphRouteEditor("#stop-routes", selected.sections.values().flatMap(s => s.routes.flatMap(r => r.route.gtfsId)).toArray())
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"
         }

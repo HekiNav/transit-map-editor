@@ -8,7 +8,7 @@ export class Grid {
     #pattern: Pattern;
     #size: number;
     #minorLines: number;
-    constructor(size = 100, minorLines = 10) {
+    constructor(size = 200, minorLines = 20) {
         this.element = svg.rect(0, 0).addClass("grid").addClass("ns").addClass("nu")
         this.element.addTo(svg).opacity(0.7)
         this.#size = size

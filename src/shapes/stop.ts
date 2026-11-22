@@ -17,7 +17,7 @@ export class StopShape extends SelectableShape {
     stops: StopWithRoutes[] = []
     #slots: [StopSlot, StopSlot][] = []
     constructor(pos: { x: number, y: number }, id = crypto.randomUUID(),) {
-        super(new Rect().size(10, 10).center(pos.x, pos.y).stroke({ color: "#000", width: 2 }).fill("#fff").radius(5, 5), id, "stop", true)
+        super(new Rect().size(config.stop_size, config.stop_size).center(pos.x, pos.y).stroke({ color: "#000", width: config.stop_stroke }).fill("#fff").radius(config.stop_size * 0.5, config.stop_size * 0.5), id, "stop", true)
         this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
         this.#updateStops()
         graph.stops.add(this)
@@ -27,7 +27,7 @@ export class StopShape extends SelectableShape {
         })
     }
     setWidth(w: number) {
-        this.element.children()[0].width(Math.max(1, w) * 10)
+        this.element.children()[0].width(Math.max(1, w) * config.stop_size)
     }
     getAdjacentStops(): AdjacentStop[] {
         const patterns = this.stops.flatMap(s => s.patterns)
@@ -110,7 +110,7 @@ export class StopShape extends SelectableShape {
             const index = c.findIndex(s => s?.route == route)
             if (index == -1 || p !== null) return p
             else return {
-                x: Number(this.element.x()) + 5 + 10 * i,
+                x: Number(this.element.x()) + config.stop_size * (i + 0.5),
                 y: this.element.cy(),
                 direction: {
                     x: 0,
@@ -124,7 +124,7 @@ export class StopShape extends SelectableShape {
     }
     setSlot(i: number, j: number, s: StopSlot | null) {
         if (i > this.#slots.length || j >= 2) return
-        if ( i == this.#slots.length) this.#slots.push([null, null])
+        if (i == this.#slots.length) this.#slots.push([null, null])
         this.#slots[i][j] = s
         this.#updateSlots()
     }

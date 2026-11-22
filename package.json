@@ -24,6 +24,7 @@
     "wrangler": "^4.162.0"
   },
   "dependencies": {
+    "@melloware/coloris": "^0.25.2",
     "@sqlite.org/sqlite-wasm": "^3.51.2-build8",
     "@svgdotjs/svg.js": "^3.2.5",
     "@svgdotjs/svg.panzoom.js": "^2.1.2",

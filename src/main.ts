@@ -1,4 +1,5 @@
 import { SVG } from '@svgdotjs/svg.js'
+import "@melloware/coloris/dist/coloris.css"
 
 Object.defineProperty(window, "svg", {
     value: SVG(),
@@ -12,11 +13,26 @@ Object.defineProperty(window, "graph", {
     value: new Graph(),
     writable: false
 })
+export interface TMEConfig {
+    route_width: number,
+    stop_size: number,
+    stop_stroke: number
+}
+const config: TMEConfig = {
+    route_width: 16,
+    stop_size: 20,
+    stop_stroke: 4
+}
+Object.defineProperty(window, "config", {
+    value: config,
+    writable: false
+})
 
 declare global {
     const svg: Svg
     const undo: UndoSystem
     const graph: Graph
+    const config: TMEConfig
 }
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'

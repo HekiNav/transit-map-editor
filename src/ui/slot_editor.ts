@@ -23,7 +23,7 @@ export function addSlotEditor(element: string, getSlots: () => [StopSlot, StopSl
         if (tempElement !== null && activeSlot && draggingSlot) {
             const slots = structuredClone(getSlots())
             onSlotUpdate(...activeSlot, slots[draggingSlot[0]][draggingSlot[1]])
-            onSlotUpdate(...draggingSlot, slots[activeSlot[0]][activeSlot[1]] || null)
+            onSlotUpdate(...draggingSlot, slots[activeSlot[0]] ? slots[activeSlot[0]][activeSlot[1]] : null)
             reload()
             tempElement.remove()
             tempElement = null

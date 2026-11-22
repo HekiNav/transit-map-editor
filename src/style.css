@@ -38,7 +38,12 @@ summary::after {
 details[open] > summary::after {
   transform: rotate(90deg);
 }
-[data-type="stop"] {
-  z-index: 10;
-  position: relative;
+
+.clr-picker {
+  width: 520px;
+}
+.clr-field * {
+  color: transparent;
+  overflow: hidden;
+  border-radius: 0.25rem;
 }

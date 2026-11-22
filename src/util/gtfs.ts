@@ -140,6 +140,9 @@ async function reloadSearches() {
     await stopSearch.addAllAsync(stops.map(s => ({ ...s, routes: s.patterns.map(p => routes.find(r => r.route_id == p.pattern?.route_id)) })))
     await routeSearch.addAllAsync(routes)
     console.log("SEARCHES INITTED", stops, routes)
+    Toastify({
+        text: "Search engine loaded"
+    }).showToast()
 }
 
 function error(msg: string) {
