@@ -8,7 +8,7 @@ import { StopShape } from "../shapes/stop"
 import { BasicCircleShape } from "../shapes/basic"
 import type { Eventable } from "./event"
 import { SectionShape } from "../shapes/section"
-import {addGraphRouteEditor} from "../ui/graph_route_editor"
+import { addGraphRouteEditor } from "../ui/graph_route_editor"
 import { RouteSectionShape } from "../shapes/route_section"
 const selectedElements: SelectableShape[] = []
 
@@ -186,6 +186,17 @@ window.addEventListener("DOMContentLoaded", () => {
             e.cx(x)
             e.cy(y)
         })
+    })
+    document.addEventListener("keypress", e => {
+        console.log(e.target)
+        if (e.target != document.body) return
+        console.log("jdjdjd")
+        if (e.key == "KeyR") {
+            selectedElements.forEach(el => {
+                el.element.rotate(e.shiftKey ? -90 : 90)
+                el.emit("update")
+            })
+        }
     })
 })
 

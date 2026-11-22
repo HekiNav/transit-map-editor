@@ -131,7 +131,7 @@ export class StopShape extends SelectableShape {
     }
     #updateSlots() {
         if (this.#slots[this.#slots.length -1]?.every(e => e === null)) this.#slots.pop()
-        //if (this.#slots[0]?.every(e => e === null)) this.#slots.splice(0,1)
+        this.#slots.splice(0,this.#slots.findIndex(e => e.some(a => a !== null)))
         this.sections.forEach(s => s.emit("update"))
         this.setWidth(this.#slots.length)
     }
