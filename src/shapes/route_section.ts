@@ -1,4 +1,4 @@
-import { SelectableShape } from "../util/shape";
+import { SelectableShape } from "../shape";
 import { Polyline } from "@svgdotjs/svg.js";
 import type { ArrayXY } from "@svgdotjs/svg.js";
 import type { Route } from "../util/route";

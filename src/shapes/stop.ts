@@ -1,5 +1,5 @@
 import { Rect } from "@svgdotjs/svg.js";
-import { SelectableShape } from "../util/shape";
+import { SelectableShape } from "../shape";
 import { SectionShape } from "./section";
 import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";

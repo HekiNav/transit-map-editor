@@ -1,4 +1,4 @@
-import { SelectableShape } from "../util/shape";
+import { SelectableShape } from "../shape";
 import type { PatternWithRoute } from "../db/schema";
 import { G } from "@svgdotjs/svg.js";
 import { StopShape } from "./stop";

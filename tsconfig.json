@@ -20,7 +20,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
   },
-  "include": ["./src/*"],
+  "include": ["./src/*", "src/util/gtfs.ts"],
   "resolveJsonModule": true,
   "esModuleInterop": true,
   "module": "commonjs"

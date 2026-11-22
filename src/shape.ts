@@ -1,6 +1,6 @@
 import { Element } from "@svgdotjs/svg.js"
 import { getSelection, select } from "./selection";
-import { Eventable } from "./event"
+import { Eventable } from "./util/event"
 
 export type ShapeType = "basic_circle" | "stop" | "route_section" | "section"
 

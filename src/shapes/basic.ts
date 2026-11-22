@@ -1,4 +1,4 @@
-import { SelectableShape } from "../util/shape";
+import { SelectableShape } from "../shape";
 import { Circle } from "@svgdotjs/svg.js";
 
 export class BasicCircleShape extends SelectableShape {

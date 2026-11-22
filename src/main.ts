@@ -39,7 +39,7 @@ import './style.css'
 import "toastify-js/src/toastify.css"
 import { elementSize } from './util/html'
 import { Grid } from './util/grid'
-import { clearSelection, getSelection } from './util/selection'
+import { clearSelection, getSelection } from './selection'
 import { Graph } from "./util/graph"
 import type { Svg } from '@svgdotjs/svg.js'
 import { StopShape } from './shapes/stop'
@@ -47,7 +47,7 @@ import { initListeners } from "./util/gtfs"
 import type { PanZoomOptions } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
 import { load, save } from './util/save'
-import type { ShapeType } from './util/shape'
+import type { ShapeType } from './shape'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
