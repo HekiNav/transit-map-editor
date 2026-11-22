@@ -1,6 +1,8 @@
 # Transit map editor
 A transit map editor that uses GTFS data to guide the map making. Runs completely locally in the browser. The project is not completeand is in alpha.
 
+![screenshot](screenshot.png)
+
 ## Current features
 - GTFS importing (url and file upload)
     - The GTFS is parsed and processed, then pushed into a sqlite DB running in OPFS (origin private file system), which allows the caching of large datasets
@@ -43,3 +45,6 @@ A transit map editor that uses GTFS data to guide the map making. Runs completel
 2. Compile production build: `npm run build`
 2. Preview production build: `npm run preview`
 2. Deploy to Cloudflare Workers: `npm run preview`
+
+## Why did I make this?
+I simply wanted to try to make a tool to help me make and validate transit maps with GTFS data
