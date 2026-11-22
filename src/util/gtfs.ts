@@ -166,7 +166,7 @@ async function parseGTFS(data: File) {
     let progress = 0
     const toast = Toastify({
         duration: 1000000000,
-        text: `Starting to load file (${Math.round(data.size / 1000)} MB)`,
+        text: `Starting to load file (${Math.round(data.size / 1000_000)} MB)`,
         className: "text-black! bg-white! border-2 border-black rounded! p-2!",
         style: { background: "white", "box-shadow": "none" },
     })
