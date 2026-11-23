@@ -6,9 +6,12 @@ export type ShapeType = "basic_circle" | "stop" | "route_section" | "section"
 
 export class SelectableShape extends Eventable<"update" | "remove"> {
     element: Element;
-    id: string
-    constructor(el: Element, id: string, type: ShapeType, selected = false) {
+    id: `${string}-${string}-${string}-${string}-${string}`
+    #removed: boolean = false
+    clone: () => SelectableShape
+    constructor(el: Element, id: `${string}-${string}-${string}-${string}-${string}`, type: ShapeType, selected = false) {
         super("update", "remove")
+        this.clone = () => new SelectableShape(el, id, type, selected)
         let group = svg.findOne("#group-"+type)
         if (!group) group = svg.group().id("group-"+type)
         this.element = svg.group()
@@ -19,6 +22,7 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
         this.id = id
 
         this.element.data("type", type)
+        graph.elements.set(id, this)
         this.element.id(id)
         this.element.data("in-use", true)
 
@@ -39,6 +43,17 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     remove() {
         this.element.remove()
         this.emit("remove")
+        graph.elements.delete(this.id)
+        this.#removed = true
+    }
+    // fetch gets the newest reference to the element
+    // useful if the element is deleted and re-added (id needs to match)
+    fetch() {
+        if (!this.#removed) return this
+        else return SelectableShape.fetchById<typeof this>(this.id)
+    }
+    static fetchById<T extends SelectableShape>(id: string): T | null {
+        return graph.elements.get(id) as T || null
     }
 }
 /* export class Arrow extends Eventable<"update"> {

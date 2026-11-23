@@ -47,7 +47,7 @@ import { initListeners } from "./util/gtfs"
 import type { PanZoomOptions } from '@svgdotjs/svg.panzoom.js'
 import { UndoSystem, type ChangeData } from "./util/undo"
 import { load, save } from './util/save'
-import type { ShapeType } from './shape'
+import { SelectableShape, type ShapeType } from './shape'
 
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
@@ -89,12 +89,14 @@ document.addEventListener("DOMContentLoaded", () => {
     initListeners()
     updateHistory()
 
-    new StopShape({ x: 200, y: 0 })
-    setTimeout(() => {
-        undo.logChange("Initted test view")
-    }, 100)
-
     svg.on("history", updateHistory)
+
+    const id = crypto.randomUUID()
+    undo.logChange("Initted test view", () => {
+        new StopShape({ x: 200, y: 0 }, id)
+    }, () => {
+        SelectableShape.fetchById(id)?.remove()
+    })
 
     document.getElementById("save")?.addEventListener("click", save)
     document.getElementById("save_load")?.addEventListener("change", (e) => {
@@ -124,7 +126,12 @@ window.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).code == "KeyM") setMode("move")
     if ((e as KeyboardEvent).code == "KeyD") setMode("draw")
     if ((e as KeyboardEvent).code == "Delete") {
-        getSelection().forEach(el => el.remove())
+        const elements = [...getSelection()]
+        undo.logChange(`Delete ${elements.length} objects`, () => {
+            elements.forEach(e => e.remove())
+        }, () => {
+            elements.forEach(e => console.log(e.clone()))
+        })
     }
     if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) {
         clearSelection()

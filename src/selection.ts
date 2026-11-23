@@ -1,7 +1,7 @@
 import type { ArrayXY } from "@svgdotjs/svg.js"
 import { Element } from "@svgdotjs/svg.js"
 import { PAN_ZOOM_OPTIONS } from "./main"
-import type { SelectableShape } from "./shape"
+import { SelectableShape } from "./shape"
 import { addSearch } from "./ui/stop_search"
 import { addSlotEditor } from "./ui/slot_editor"
 import { StopShape } from "./shapes/stop"
@@ -14,7 +14,7 @@ const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
 
-let movingElements: { e: Element, s: SelectableShape, offset: ArrayXY }[] = []
+let movingElements: { e: Element, s: SelectableShape, offset: ArrayXY, startMouse: ArrayXY }[] = []
 
 const selectionCont = document.querySelector("#selection")!
 
@@ -88,16 +88,25 @@ function onSelection() {
                 `
                 selectionCont.appendChild(item)
                 item.addEventListener("click", () => {
-                    const stop = graph.stops.values().find(st => st.gtfsIds.has(s.stop.stop_id)) || (() => {
-                        const newStop = new StopShape({ x: Number(selected.element.x()), y: Number(selected.element.y()) + 50 })
-                        newStop.toggleId(s.stop.stop_id)
-                        return newStop
-                    })()
-                    stop.emit("update")
-                    new SectionShape(selected, stop)
+                    let stopElId: ReturnType<typeof crypto.randomUUID> = crypto.randomUUID()
+                    let stop = graph.stops.values().find(st => st.gtfsIds.has(s.stop.stop_id))
+                    stop?.emit("update")
+                    const id = crypto.randomUUID()
+                    undo.logChange(`Add stop via AdjacentStop`, () => {
+                        if (!stop) {
+                            const newStop = new StopShape({ x: Number(selected.element.cx()), y: Number(selected.element.cy()) + 50 }, stopElId)
+                            newStop.toggleId(s.stop.stop_id)
+                            new SectionShape(selected, newStop, id)
+                        } else {
+                            new SectionShape(selected, stop, id)
+                        }
+                    }, () => {
+                        if (!stop) SelectableShape.fetchById(stopElId)?.remove()
+                        SelectableShape.fetchById(id)?.remove()
+                    })
                 })
             })
-            addSearch("stop", "#stop-search", selected.gtfsIds, (id) => selected.toggleId(id))
+            addSearch("stop", "#stop-search", selected.gtfsIds, (...ids) => selected.toggleId(...ids))
             addSlotEditor("#stop-slots", () => selected.getAllSlots(), (i, j, s) => {
                 selected.setSlot(i, j, s)
             })
@@ -166,12 +175,33 @@ export function reloadBBs() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-    svg.on("mouseup", () => {
+    svg.on("mouseup", ev => {
         if (!svg.data('panZoomEnabled')) {
             svg.panZoom(PAN_ZOOM_OPTIONS)
             svg.data('panZoomEnabled', true)
         }
-        if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`)
+        console.log(movingElements)
+        let elements = [...movingElements]
+        const grid: number = svg.data("grid") || 1
+        const scale: number = (svg.data("scale") || 1)
+        const mx = (ev as MouseEvent).offsetX
+        const my = (ev as MouseEvent).offsetY
+        if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`, () => {
+            elements.forEach(({ s, offset }) => {
+                console.log(offset)
+                const x = offset[0]
+                const y = offset[1];
+                (s.fetch()?.element)?.cx(Math.round((mx + x) * scale / grid) * grid);
+                (s.fetch()?.element)?.cy(Math.round((my + y) * scale / grid) * grid)
+            })
+        }, () => {
+            elements.forEach(({ s, offset, startMouse }) => {
+                const x = offset[0] + startMouse[0]
+                const y = offset[1] + startMouse[1];
+                (s.fetch()?.element)?.cx(Math.round(x * scale / grid) * grid);
+                (s.fetch()?.element)?.cy(Math.round(y * scale / grid) * grid)
+            })
+        })
         movingElements.forEach(el => el.s.emit("update"))
         movingElements = []
         setTimeout(() => svg.data("moving", false), 1)
@@ -211,6 +241,10 @@ export class SelectionIndicator {
             movingElements = selectedElements.map(e => ({
                 e: e.element,
                 s: e,
+                startMouse: [
+                    (ev as MouseEvent).offsetX,
+                    (ev as MouseEvent).offsetY
+                ],
                 offset: [
                     e.element.cx() / scale - (ev as MouseEvent).offsetX,
                     e.element.cy() / scale - (ev as MouseEvent).offsetY

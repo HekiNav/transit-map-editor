@@ -16,9 +16,11 @@ export class StopShape extends SelectableShape {
     sections = new Set<SectionShape>()
     stops: StopWithRoutes[] = []
     #slots: [StopSlot, StopSlot][] = []
+    clone: () => StopShape
     constructor(pos: { x: number, y: number }, id = crypto.randomUUID(),) {
         super(new Rect().size(config.stop_size, config.stop_size).center(pos.x, pos.y).stroke({ color: "#000", width: config.stop_stroke }).fill("#fff").radius(config.stop_size * 0.5, config.stop_size * 0.5), id, "stop", true)
-        this.gtfsIds = new Set(this.element.node.getAttribute("gtfs-ids")?.split(",") || [])
+        this.clone = () => { const e = new StopShape({ x: this.element.cx(), y: this.element.cy() }, id); e.gtfsIds = this.gtfsIds; this.#updateElementGTFSIds(); this.#updateStops(); return e }
+        this.gtfsIds = new Set(this.element.attr("data-gtfs-ids")?.split(",") || [])
         this.#updateStops()
         graph.stops.add(this)
         this.on("remove", () => {
@@ -67,9 +69,12 @@ export class StopShape extends SelectableShape {
             return [...prev, curr]
         }, new Array<AdjacentStop>()).filter(e => !connectedStops.has(e.stop.stop_id))
     }
-    toggleId(id: string) {
-        if (this.gtfsIds.has(id)) this.gtfsIds.delete(id)
-        else this.gtfsIds.add(id)
+    toggleId(...ids: string[]) {
+        ids.forEach(id => {
+            if (this.gtfsIds.has(id)) this.gtfsIds.delete(id)
+            else this.gtfsIds.add(id)
+        })
+
         this.#updateElementGTFSIds()
         this.#updateStops()
     }
@@ -79,7 +84,21 @@ export class StopShape extends SelectableShape {
         this.#updateStops()
     }
     #updateElementGTFSIds() {
-        this.element.node.setAttribute("data-gtfs-ids", this.gtfsIds.keys().toArray().join(","))
+        const prev = new Set(String(this.element.attr("data-gtfs-ids") || "").split(",") || [])
+        const curr = new Set([...this.gtfsIds])
+        undo.logChange("Update linked stops", () => {
+            const el = this.fetch()
+            if (!el) return
+            el.element.attr("data-gtfs-ids", curr.keys().toArray().join(","))
+            el.gtfsIds = curr
+            el.emit("update")
+        }, () => {
+            const el = this.fetch()
+            if (!el) return
+            el.element.attr("data-gtfs-ids", prev.keys().toArray().join(","))
+            el.gtfsIds = prev
+            el.emit("update")
+        })
     }
     linkSection(s: SectionShape) {
         this.sections.add(s)
@@ -130,8 +149,8 @@ export class StopShape extends SelectableShape {
         this.#updateSlots()
     }
     #updateSlots() {
-        if (this.#slots[this.#slots.length -1]?.every(e => e === null)) this.#slots.pop()
-        this.#slots.splice(0,this.#slots.findIndex(e => e.some(a => a !== null)))
+        if (this.#slots[this.#slots.length - 1]?.every(e => e === null)) this.#slots.pop()
+        this.#slots.splice(0, this.#slots.findIndex(e => e.some(a => a !== null)))
         this.sections.forEach(s => s.emit("update"))
         this.setWidth(this.#slots.length)
     }
@@ -165,7 +184,6 @@ export class StopShape extends SelectableShape {
         this.stops = data
         this.emit("update")
         svg.fire("update")
-        undo.logChange("Update linked stops")
         this.sections.forEach(s => this.regenerateSlots(s))
     }
 }

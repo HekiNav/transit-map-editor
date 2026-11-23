@@ -4,7 +4,7 @@ import { routeSearch, stopSearch } from "../util/gtfs"
 import { commonSubsequence } from "../util/math"
 import { type Route, type Stop } from "../db/schema"
 
-export async function addSearch(type: "stop", container: string, selected: Set<string>, setSelected: (id: string) => void) {
+export async function addSearch(type: "stop", container: string, selected: Set<string>, setSelected: (...id: string[]) => void) {
     const selectedData = await db.query.stops.findMany({ where: { stop_id: { in: Array.from(selected.values()) } } })
     const cont = document.querySelector(container)
     if (!cont || cont.hasAttribute("data-consumed")) return
@@ -32,9 +32,9 @@ export async function addSearch(type: "stop", container: string, selected: Set<s
 
     selectAll.addEventListener("click", () => {
         if (results.every(r => selected.has(r))) {
-            results.forEach(r => setSelected(r))
+            setSelected(...results)
         } else {
-            results.filter(r => !selected.has(r)).forEach(r => setSelected(r))
+            setSelected(...results.filter(r => !selected.has(r)))
         }
     })
     buttonContainer.appendChild(selectAll)

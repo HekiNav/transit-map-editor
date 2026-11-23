@@ -14,8 +14,10 @@ export class SectionShape extends SelectableShape {
     patterns: PatternWithRoute[] = []
     routes: RouteSectionShape[] = []
     path: ArrayXY[] = []
+    clone: () => SectionShape
     constructor(start: StopShape, end: StopShape, id = crypto.randomUUID()) {
         super(new G(), id, "section")
+        this.clone = () => new SectionShape(start, end, id)
         this.start = start
         this.end = end
         this.start.linkSection(this)
@@ -25,6 +27,7 @@ export class SectionShape extends SelectableShape {
             this.end.unlinkSection(this)
             this.start.off("update", () => this.onupdate())
             this.end.off("update", () => this.onupdate())
+            this.routes.forEach(r => r.remove())
         })
         this.start.on("update", () => this.onupdate())
         this.end.on("update", () => this.onupdate())

@@ -11,8 +11,10 @@ export class RouteSectionShape extends SelectableShape {
     patterns: PatternWithRoute[]
     route: Route
     section: SectionShape
+    clone: () => RouteSectionShape
     constructor(section: SectionShape, route: Route, patterns: PatternWithRoute[], id = crypto.randomUUID()) {
         super(new G(), id, "route_section", false)
+        this.clone = () => new RouteSectionShape(section, route, patterns, id)
         this.route = route
         this.patterns = patterns
         this.section = section

@@ -1,119 +1,53 @@
-export type ChangeType = "attribute" | "add" | "remove" | "reorder"
+
+export interface Change extends ChangeData {
+    undo: () => void
+    redo: () => void
+}
 
 export interface ChangeData {
-    type: ChangeType,
     label: string,
-    timestamp: number
-}
-
-export interface AttributeChange {
-    type: "attribute",
-    target: Element
-    name: string,
-    oldValue: string | null
-    newValue: string | null
-}
-
-export interface ChildChange {
-    type: "child",
-    action: "remove" | "add",
-    parent: Element
-    element: Element,
-    nextSibling: Element | null
-}
-
-export type AnyChange = AttributeChange | ChildChange
-
-export interface ChangeStep {
-    data: ChangeData,
-    changes: AnyChange[]
-}
-
-function filterMutationElement(el: HTMLElement) {
-    return (
-        el.nodeName != "pattern" &&
-        el.nodeName != "defs" &&
-        !el.classList.contains("nu")
-    )
+    timestamp: number,
 }
 
 export class UndoSystem {
-    #undoStack: ChangeStep[] = []
-    #redoStack: ChangeStep[] = []
-    #pendingChanges: MutationRecord[] = []
-    #undoing = false
-    #observer: MutationObserver
+    #undoStack: Change[] = []
+    #redoStack: Change[] = []
     constructor() {
-        this.#observer = new MutationObserver((mutations) => {
-            if (this.#undoing) return
-            const filtered = mutations.filter(m => {
-                return (
-                    (m.target.nodeName != "svg" || m.type != "attributes") &&
-                    filterMutationElement(m.target as HTMLElement) &&
-                    (m.removedNodes.length == 0 || Array.from(m.removedNodes).every(n => filterMutationElement(n as HTMLElement))) &&
-                    (m.addedNodes.length == 0 || Array.from(m.addedNodes).every(n => filterMutationElement(n as HTMLElement)))
-                )
-            })
-            this.#pendingChanges.push(...filtered)
-        })
-        this.#observer.observe(svg.node, {
-            attributes: true,
-            childList: true,
-            subtree: true,
-            attributeOldValue: true,
-            characterDataOldValue: true,
-            characterData: true,
-        })
     }
-    logChange(label: string) {
-        console.log("pending changes:", mutationsToChanges(this.#pendingChanges).length)
-        const changes = mergeChanges(mutationsToChanges(this.#pendingChanges))
-        console.log("compressed changes:", changes.length)
-        const data: ChangeData = {
+    logChange(label: string, redo: () => void, undo: () => void) {
+        const data: Change = {
             label,
-            type: getType(this.#pendingChanges),
+            undo,
+            redo,
             timestamp: Date.now()
         }
-        this.#undoStack.push({
-            changes,
-            data
-        })
+        redo()
+        this.#undoStack.push(data)
         this.#redoStack.length = 0
-        this.#pendingChanges.length = 0
         svg.fire("history")
     }
-    undo(): ChangeData | null {
+    undo(): Change | null {
         const step = this.#undoStack.pop()
         if (!step) return null
 
-        this.#undoing = true
-        try {
-            applyUndo(step.changes)
-        } finally {
-            this.#undoing = false
-        }
+        step.undo()
 
         this.#redoStack.push(step)
         svg.fire("update")
         svg.fire("history")
-        return step.data
+        return step
     }
 
-    redo(): ChangeData | null {
+    redo(): Change | null {
         const step = this.#redoStack.pop()
         if (!step) return null
 
-        this.#undoing = true
-        try {
-            applyRedo(step.changes)
-        } finally {
-            this.#undoing = false
-        }
+        step.redo()
 
         this.#undoStack.push(step)
         svg.fire("update")
         svg.fire("history")
-        return step.data
+        return step
     }
 
     get canUndo(): boolean {
@@ -124,126 +58,10 @@ export class UndoSystem {
     }
 
     get history(): { undo: ChangeData[], redo: ChangeData[] } {
-        return { undo: this.#undoStack.map((s) => s.data), redo: this.#redoStack.map(s => s.data) }
+        return { undo: this.#undoStack.map(({label, timestamp}) => ({label, timestamp})), redo: this.#redoStack.map(({label, timestamp}) => ({label, timestamp})) }
     }
     clear(): void {
         this.#undoStack = []
         this.#redoStack = []
-        this.#pendingChanges = []
     }
-}
-
-function canMergeAttribute(p: AttributeChange, n: AttributeChange) {
-    return (
-        p.target === n.target &&
-        p.name === n.name &&
-        (p.newValue === n.oldValue || (p.newValue === n.newValue && p.oldValue === n.oldValue))
-    )
-}
-function mergeAttribute(p: AttributeChange, n: AttributeChange): AttributeChange {
-    return { ...p, newValue: n.newValue }
-}
-
-function getType(mutations: MutationRecord[]) {
-    const hasChildList = mutations.some((m) => m.type === 'childList')
-    if (hasChildList) {
-        const anyAdded = mutations.some((m) => m.addedNodes.length > 0)
-        const anyRemoved = mutations.some((m) => m.removedNodes.length > 0)
-        if (anyAdded && !anyRemoved) return 'add'
-        if (anyRemoved && !anyAdded) return 'remove'
-        if (!anyAdded && !anyRemoved) return 'reorder'
-    }
-    return 'attribute'
-}
-
-function mutationsToChanges(mutations: MutationRecord[]): AnyChange[] {
-    const changes: AnyChange[] = []
-
-    mutations.forEach(m => {
-        if (m.type == "attributes" && m.attributeName && m.target instanceof Element) {
-            changes.push({
-                type: "attribute",
-                name: m.attributeName,
-                newValue: m.target.getAttribute(m.attributeName),
-                oldValue: m.oldValue,
-                target: m.target
-            })
-        } else if (m.type == "childList" && m.target instanceof Element) {
-            m.removedNodes.forEach(n =>
-                changes.push({
-                    type: "child",
-                    action: "remove",
-                    element: n as Element,
-                    nextSibling: n.nextSibling as Element | null,
-                    parent: m.target as Element
-                })
-            )
-            m.addedNodes.forEach(n =>
-                changes.push({
-                    type: "child",
-                    action: "add",
-                    element: n as Element,
-                    nextSibling: n.nextSibling as Element | null,
-                    parent: m.target as Element
-                })
-            )
-        }
-    })
-    return changes
-}
-
-
-function applyRedo(changes: AnyChange[]): void {
-    changes.forEach(change => {
-        if (change.type === 'attribute') {
-            if (change.newValue === null) {
-                change.target.removeAttribute(change.name)
-            } else {
-                change.target.setAttribute(change.name, change.newValue)
-            }
-        } else if (change.type === 'child') {
-            if (change.action === 'add') {
-                const ref = change.nextSibling && change.parent.contains(change.nextSibling)
-                    ? change.nextSibling
-                    : null
-                change.parent.insertBefore(change.element, ref)
-            } else {
-                if (change.parent.contains(change.element)) {
-                    change.parent.removeChild(change.element)
-                }
-            }
-        }
-    })
-}
-
-function applyUndo(changes: AnyChange[]): void {
-    [...changes].reverse().forEach((change) => {
-        if (change.type === 'attribute') {
-            if (change.oldValue === null) {
-                change.target.removeAttribute(change.name)
-            } else {
-                change.target.setAttribute(change.name, change.oldValue)
-            }
-        } else if (change.type === 'child') {
-            if (change.action === 'add') {
-                change.parent.removeChild(change.element)
-            } else {
-                const ref = change.nextSibling && change.parent.contains(change.nextSibling)
-                    ? change.nextSibling
-                    : null
-                change.parent.insertBefore(change.element, ref)
-            }
-        }
-    })
-}
-function mergeChanges(changes: AnyChange[]): AnyChange[] {
-    return changes.reduce((prev, curr) => {
-        if (curr.type !== "attribute") return [...prev, curr]
-        const lastIndex = prev.findLastIndex(c => c.type == "attribute" && c.name == curr.name && c.target == curr.target)
-        if (lastIndex < 0) return [...prev, curr]
-        const last = prev.slice(lastIndex, lastIndex+1)[0]
-        if (last.type !== 'attribute' || curr.type !== "attribute" || !canMergeAttribute(last, curr)) return [...prev, curr]
-        prev.splice(lastIndex, 1)[0]
-        return [...prev, mergeAttribute(last, curr)]
-    }, new Array<AnyChange>())
 }

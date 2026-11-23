@@ -25,8 +25,16 @@ export function addGraphRouteEditor(selector: string, routes: string[]) {
             swatches: transpose(COLORS).flat(),
             alpha: false,
             onChange: c => {
-                graph.routes.get(id)!.color = c
-                svg.fire("graph_update")
+                const route = graph.routes.get(id)!
+                let prev_color = route.color
+                undo.logChange(`Change color of route ${route.shortName || route.longName}`, () => {
+                    graph.routes.get(id)!.color = c
+                    svg.fire("graph_update")
+                }, () => {
+                    graph.routes.get(id)!.color = prev_color
+                    svg.fire("graph_update")
+                })
+
             }
         })
 
