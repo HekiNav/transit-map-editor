@@ -14,3 +14,7 @@ export function commonSubsequence(array: string[]) {
     index++;
   return first.substring(0, index);
 }
+
+export function normalizeAngle(a: number) {
+  return ((a % 360) + 360) % 360
+}

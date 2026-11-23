@@ -218,12 +218,10 @@ window.addEventListener("DOMContentLoaded", () => {
         })
     })
     document.addEventListener("keypress", e => {
-        console.log(e.target)
         if (e.target != document.body) return
-        console.log("jdjdjd")
-        if (e.key == "KeyR") {
+        if (e.code == "KeyR") {
             selectedElements.forEach(el => {
-                el.element.rotate(e.shiftKey ? -90 : 90)
+                el.rotation += e.shiftKey ? -45 : 45
                 el.emit("update")
             })
         }

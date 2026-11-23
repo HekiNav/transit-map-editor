@@ -39,7 +39,12 @@ export class SectionShape extends SelectableShape {
         this.#updatePatterns()
     }
     #updatePatterns() {
-        const newPatterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => p && this.end.stops.some(s => s.patterns.some(e => e.pattern_id == p.pattern_id)))
+        const newPatterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => {
+            const startIndex = p.stops.findIndex(s => this.start.stops.some(e => e.stop_id == s.stop_id))
+            const endIndex = p.stops.findIndex(s => this.end.stops.some(e => e.stop_id == s.stop_id))
+            const inBetweenStops = p.stops.slice(Math.min(startIndex, endIndex) + 1, Math.min(startIndex, endIndex) + Math.abs(startIndex - endIndex))
+            return p && startIndex != -1 && endIndex != -1 && inBetweenStops.every(s => graph.stops.keys().every(e => !e.gtfsIds.has(s.stop_id)))
+        })
         if (newPatterns.length === this.patterns.length && newPatterns.every((p, i) => this.patterns[i].pattern_id === p.pattern_id)) {
             // no changes, ignore
             this.#updateRoutes()
