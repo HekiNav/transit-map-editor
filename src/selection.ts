@@ -221,7 +221,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (e.target != document.body) return
         if (e.code == "KeyR") {
             selectedElements.forEach(el => {
-                el.rotation += e.shiftKey ? -45 : 45
+                el.rotation += e.shiftKey ? -(Math.PI*0.5) : (Math.PI*0.5)
                 el.emit("update")
             })
         }

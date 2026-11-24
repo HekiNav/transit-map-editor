@@ -11,7 +11,7 @@ https://tme.hekinav.dev
 
 -->
 `
-
+// BROKEN!!!! DOES NOT WORK
 export function save() {
 
     const newSvg = SVG(svg.node.cloneNode(true) as Element)

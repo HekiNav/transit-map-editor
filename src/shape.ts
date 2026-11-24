@@ -1,14 +1,15 @@
 import { Element } from "@svgdotjs/svg.js"
 import { getSelection, select } from "./selection";
 import { Eventable } from "./util/event"
-import { normalizeAngle } from "./util/math";
+import { normalizeAngle, radToDeg } from "./util/math";
 
-export type ShapeType = "basic_circle" | "stop" | "route_section" | "section"
+export type ShapeType = "basic_circle" | "stop" | "route_section" | "section" | "section_keypoint"
 
 export class SelectableShape extends Eventable<"update" | "remove"> {
     element: Element;
     id: `${string}-${string}-${string}-${string}-${string}`
     #removed: boolean = false
+    // radians
     #rotation: number = 0
     clone: () => SelectableShape
     constructor(el: Element, id: `${string}-${string}-${string}-${string}-${string}`, type: ShapeType, selected = false) {
@@ -47,7 +48,8 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     }
     set rotation(new_rot) {
         this.#rotation = normalizeAngle(new_rot)
-        this.element.children().each(c => !c.hasClass("ns") && c.transform({rotate: new_rot}))
+        console.log(this.#rotation)
+        this.element.children().each(c => c.attr("transform",`rotate(${radToDeg(new_rot)} ${this.element.cx()} ${this.element.cy()})`))
     }
     remove() {
         this.element.remove()

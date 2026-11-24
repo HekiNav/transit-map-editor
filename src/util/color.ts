@@ -186,6 +186,7 @@ export const COLORS = [
     ]
 ]
 
-export function randomColor() {
-    return COLORS[Math.floor(Math.random() * COLORS.length)][1]
+export function randomColor(randomizeBrightness = false) {
+    const row = COLORS[Math.floor(Math.random() * COLORS.length)]
+    return randomizeBrightness ? row[Math.floor(Math.random() * COLORS.length)] : row[1]
 }

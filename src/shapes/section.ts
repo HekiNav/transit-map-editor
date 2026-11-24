@@ -5,7 +5,7 @@ import { StopShape } from "./stop";
 import { RouteSectionShape } from "./route_section"
 import { Route } from "../util/route";
 import { randomColor } from "../util/color"
-import type { ArrayXY } from "@svgdotjs/svg.js";
+import { SectionKeypointShape } from "./section_keypoint"
 
 export class SectionShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
@@ -13,7 +13,7 @@ export class SectionShape extends SelectableShape {
     end: StopShape
     patterns: PatternWithRoute[] = []
     routes: RouteSectionShape[] = []
-    path: ArrayXY[] = []
+    keypoints: SectionKeypointShape[] = []
     clone: () => SectionShape
     constructor(start: StopShape, end: StopShape, id = crypto.randomUUID()) {
         super(new G(), id, "section")
@@ -71,11 +71,12 @@ export class SectionShape extends SelectableShape {
         this.#updateRoutes()
     }
     #updateRoutes() {
+        const minimumSectionLength = (this.routes.length + 1) * config.stop_size
         this.routes.forEach(r => {
             const start = this.start.getSlot(r.id)
             const end = this.end.getSlot(r.id)
             if (!end || !start) return
-            r.points = [[start.x, start.y], [end.x, end.y]]
+            r.points = [[start.x, start.y], [start.x + start.direction[0] * minimumSectionLength, start.y + start.direction[1] * minimumSectionLength], [end.x + end.direction[0] * minimumSectionLength, end.y + end.direction[1] * minimumSectionLength], [end.x, end.y]]
             r.emit("update")
         })
     }

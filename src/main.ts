@@ -1,6 +1,7 @@
 import { SVG } from '@svgdotjs/svg.js'
 import "@melloware/coloris/dist/coloris.css"
 
+// Define global vars
 Object.defineProperty(window, "svg", {
     value: SVG(),
     writable: false
@@ -34,6 +35,7 @@ declare global {
     const graph: Graph
     const config: TMEConfig
 }
+
 import '@svgdotjs/svg.panzoom.js'
 import './style.css'
 import "toastify-js/src/toastify.css"
@@ -49,10 +51,12 @@ import { UndoSystem, type ChangeData } from "./util/undo"
 import { load, save } from './util/save'
 import { SelectableShape, type ShapeType } from './shape'
 
+
+// Init
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
 
-const DRAW_ORDER: ShapeType[] = ["basic_circle", "route_section", "section", "stop"]
+const DRAW_ORDER: ShapeType[] = ["section_keypoint", "basic_circle", "route_section", "section", "stop"]
 
 export const PAN_ZOOM_OPTIONS: PanZoomOptions = {
     zoomFactor: 0.5,
@@ -104,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
 })
 
+// Event listeners
 svg.on("mode", () => {
     const mode = svg.data("mode")
     clearSelection()

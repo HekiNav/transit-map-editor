@@ -3,7 +3,8 @@ import { SelectableShape } from "../shape";
 import { SectionShape } from "./section";
 import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";
-import { transpose } from "../util/math"
+import { angleToDirection, normalizeAngle, transpose } from "../util/math"
+import type { ArrayXY } from "@svgdotjs/svg.js";
 
 export interface AdjacentStop {
     stop: Stop,
@@ -29,7 +30,7 @@ export class StopShape extends SelectableShape {
         })
     }
     setWidth(w: number) {
-        this.element.children()[0].width(Math.max(1, w) * config.stop_size)
+        this.element.children()[0].height(Math.max(1, w) * config.stop_size)
     }
     getAdjacentStops(): AdjacentStop[] {
         if (!this.stops) return []
@@ -126,16 +127,14 @@ export class StopShape extends SelectableShape {
         this.#updateSlots()
     }
     getSlot(route: string) {
-        return this.#slots.reduce<null | { x: number, y: number, direction: { x: number, y: number } }>((p, c, i) => {
+        return this.#slots.reduce<null | { x: number, y: number, direction: ArrayXY }>((p, c, i) => {
             const index = c.findIndex(s => s?.route == route)
+            const direction = angleToDirection(normalizeAngle(this.rotation + Math.PI * index))
             if (index == -1 || p !== null) return p
             else return {
-                x: Number(this.element.x()) + config.stop_size * (i + 0.5),
-                y: this.element.cy(),
-                direction: {
-                    x: 0,
-                    y: -1
-                }
+                x: Number(this.element.x()) + config.stop_size * (i * direction[0] + 0.5),
+                y: Number(this.element.y()) + config.stop_size * (i * direction[1] + 0.5),
+                direction: direction
             }
         }, null)
     }
