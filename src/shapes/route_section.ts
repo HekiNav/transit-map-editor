@@ -19,7 +19,7 @@ export class RouteSectionShape extends SelectableShape {
         this.section = section
         this.on("update", () => {
             this.element.children().each(c => c.remove())
-            this.element.add(new Path().plot(this.points).stroke({color: route.color, width: config.route_width, linecap: "round"}).fill("none"))
+            this.element.add(new Path().attr("stroke-linejoin", "round").attr("stroke-linecap", "round").plot(this.points).stroke({color: route.color, width: config.route_width, linecap: "round"}).fill("none"))
         })
         svg.on("graph_update", () => this.emit("update"))
     }

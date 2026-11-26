@@ -220,6 +220,7 @@ window.addEventListener("DOMContentLoaded", () => {
             selectedElements.forEach(el => {
                 el.rotation += e.shiftKey ? -(Math.PI * 0.25) : (Math.PI * 0.25)
                 el.emit("update")
+                reloadBBs()
             })
         }
     })
