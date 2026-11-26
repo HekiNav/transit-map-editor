@@ -11,12 +11,14 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     #removed: boolean = false
     // radians
     #rotation: number = 0
+    #position: { x: number, y: number } = { x: 0, y: 0 }
+    #size: { x: number, y: number } = { x: 0, y: 0 }
     clone: () => SelectableShape
     constructor(el: Element, id: `${string}-${string}-${string}-${string}-${string}`, type: ShapeType, selected = false) {
         super("update", "remove")
         this.clone = () => new SelectableShape(el, id, type, selected)
-        let group = svg.findOne("#group-"+type)
-        if (!group) group = svg.group().id("group-"+type)
+        let group = svg.findOne("#group-" + type)
+        if (!group) group = svg.group().id("group-" + type)
         this.element = svg.group()
             .add(el)
         group.add(this.element)
@@ -36,6 +38,7 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
             if (svg.data("moving")) return
             select(this, !(e as MouseEvent).shiftKey)
         })
+        this.#updateTransform()
     }
     get selected() {
         return getSelection().some(el => el.element == this.element)
@@ -48,8 +51,34 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     }
     set rotation(new_rot) {
         this.#rotation = normalizeAngle(new_rot)
-        console.log(this.#rotation)
-        this.element.children().each(c => c.attr("transform",`rotate(${radToDeg(new_rot)} ${this.element.cx()} ${this.element.cy()})`))
+        this.#updateTransform()
+    }
+    get position() {
+        return this.#position
+    }
+    get center() {
+        return { x: this.#position.x + this.#size.x * 0.5, y: this.#position.y + this.#size.y * 0.5 }
+    }
+    get centerOffset() {
+        return { x: this.#size.x * 0.5, y: this.#size.y * 0.5 }
+    }
+    get bbox() {
+        console.log(this)
+        return { x: this.#position.x, y: this.#position.y, w: this.#size.x, h: this.#size.y}
+    }
+    set position(new_pos) {
+        this.#position = new_pos
+        this.#updateTransform()
+    }
+    get size() {
+        return this.#size
+    }
+    set size(size) {
+        this.#size = size
+        this.#updateTransform()
+    }
+    #updateTransform() {
+        this.element.children().each(c => !c.hasClass("ns") && c.transform({ rotate: radToDeg(this.#rotation), origin: this.centerOffset, translate: this.#position }))
     }
     remove() {
         this.element.remove()

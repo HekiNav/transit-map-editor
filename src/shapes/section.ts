@@ -75,8 +75,14 @@ export class SectionShape extends SelectableShape {
         this.routes.forEach(r => {
             const start = this.start.getSlot(r.id)
             const end = this.end.getSlot(r.id)
+            console.log(start, end)
             if (!end || !start) return
-            r.points = [[start.x, start.y], [start.x + start.direction[0] * minimumSectionLength, start.y + start.direction[1] * minimumSectionLength], [end.x + end.direction[0] * minimumSectionLength, end.y + end.direction[1] * minimumSectionLength], [end.x, end.y]]
+            r.points = [
+                `M ${start.x},${start.y}`,
+                `L ${start.x + start.direction[0] * minimumSectionLength},${start.y + start.direction[1] * minimumSectionLength}`,
+                `L ${end.x + end.direction[0] * minimumSectionLength},${end.y + end.direction[1] * minimumSectionLength}`,
+                `L ${end.x},${end.y}`,
+            ]
             r.emit("update")
         })
     }

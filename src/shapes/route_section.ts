@@ -1,13 +1,12 @@
 import { SelectableShape } from "../shape";
-import { Polyline } from "@svgdotjs/svg.js";
-import type { ArrayXY } from "@svgdotjs/svg.js";
 import type { Route } from "../util/route";
 import { G } from "@svgdotjs/svg.js";
 import type { PatternWithRoute } from "../db/schema";
 import type { SectionShape } from "./section";
+import { Path } from "@svgdotjs/svg.js";
 
 export class RouteSectionShape extends SelectableShape {
-    points: ArrayXY[] = []
+    points: string[] = []
     patterns: PatternWithRoute[]
     route: Route
     section: SectionShape
@@ -20,7 +19,7 @@ export class RouteSectionShape extends SelectableShape {
         this.section = section
         this.on("update", () => {
             this.element.children().each(c => c.remove())
-            this.element.add(new Polyline().plot(this.points).stroke({color: route.color, width: config.route_width, linecap: "round"}).fill("none"))
+            this.element.add(new Path().plot(this.points).stroke({color: route.color, width: config.route_width, linecap: "round"}).fill("none"))
         })
         svg.on("graph_update", () => this.emit("update"))
     }

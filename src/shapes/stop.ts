@@ -19,17 +19,20 @@ export class StopShape extends SelectableShape {
     #slots: [StopSlot, StopSlot][] = []
     clone: () => StopShape
     constructor(pos: { x: number, y: number }, id = crypto.randomUUID(),) {
-        super(new Rect().size(config.stop_size, config.stop_size).center(pos.x, pos.y).stroke({ color: "#000", width: config.stop_stroke }).fill("#fff").radius(config.stop_size * 0.5, config.stop_size * 0.5), id, "stop", true)
-        this.clone = () => { const e = new StopShape({ x: this.element.cx(), y: this.element.cy() }, id); e.gtfsIds = this.gtfsIds; this.#updateElementGTFSIds(); this.#updateStops(); return e }
+        super(new Rect().size(config.stop_size, config.stop_size).stroke({ color: "#000", width: config.stop_stroke }).fill("#fff").radius(config.stop_size * 0.5, config.stop_size * 0.5), id, "stop", true)
+        this.clone = () => { const e = new StopShape({ x: this.position.x, y: this.position.y }, id); e.gtfsIds = this.gtfsIds; this.#updateElementGTFSIds(); this.#updateStops(); return e }
         this.gtfsIds = new Set(this.element.attr("data-gtfs-ids")?.split(",") || [])
+        this.position = pos
         this.#updateStops()
         graph.stops.add(this)
         this.on("remove", () => {
             this.sections.forEach(s => s.remove())
             graph.stops.delete(this)
         })
+        this.setWidth(0)
     }
     setWidth(w: number) {
+        this.size = {x: config.stop_size, y: Math.max(1, w) * config.stop_size}
         this.element.children()[0].height(Math.max(1, w) * config.stop_size)
     }
     getAdjacentStops(): AdjacentStop[] {
@@ -129,12 +132,13 @@ export class StopShape extends SelectableShape {
     getSlot(route: string) {
         return this.#slots.reduce<null | { x: number, y: number, direction: ArrayXY }>((p, c, i) => {
             const index = c.findIndex(s => s?.route == route)
-            const direction = angleToDirection(normalizeAngle(this.rotation + Math.PI * index))
+            const normalDirection = angleToDirection(normalizeAngle(this.rotation + Math.PI * index))
+            const direction = angleToDirection(normalizeAngle(this.rotation + Math.PI * 0.5))
             if (index == -1 || p !== null) return p
             else return {
-                x: Number(this.element.x()) + config.stop_size * (i * direction[0] + 0.5),
-                y: Number(this.element.y()) + config.stop_size * (i * direction[1] + 0.5),
-                direction: direction
+                x: this.center.x + config.stop_size * (i - this.#slots.length * 0.5 + 0.5) * direction[0],
+                y: this.center.y + config.stop_size * (i - this.#slots.length * 0.5 + 0.5) * direction[1],
+                direction: normalDirection
             }
         }, null)
     }

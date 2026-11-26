@@ -10,6 +10,7 @@ import type { Eventable } from "./util/event"
 import { SectionShape } from "./shapes/section"
 import { addGraphRouteEditor } from "./ui/graph_route_editor"
 import { RouteSectionShape } from "./shapes/route_section"
+import { radToDeg } from "./util/math"
 const selectedElements: SelectableShape[] = []
 
 const selectionIndicators: SelectionIndicator[] = []
@@ -94,7 +95,7 @@ function onSelection() {
                     const id = crypto.randomUUID()
                     undo.logChange(`Add stop via AdjacentStop`, () => {
                         if (!stop) {
-                            const newStop = new StopShape({ x: Number(selected.element.cx()), y: Number(selected.element.cy()) + 50 }, stopElId)
+                            const newStop = new StopShape({ x: selected.position.x, y: selected.position.y + 50 }, stopElId)
                             newStop.toggleId(s.stop.stop_id)
                             new SectionShape(selected, newStop, id)
                         } else {
@@ -125,7 +126,6 @@ function onSelection() {
 
                 </div>
             `
-            console.log()
             addGraphRouteEditor("#section-routes", selected.routes.map(r => r.route.gtfsId))
 
         }
@@ -170,7 +170,7 @@ export function reloadBBs() {
         let listener = () => reloadBBs
         el.once("update", listener)
         bboxListeners.push([listener, el])
-        selectionIndicators.push(new SelectionIndicator(el.element))
+        selectionIndicators.push(new SelectionIndicator(el))
     })
 }
 
@@ -180,7 +180,6 @@ window.addEventListener("DOMContentLoaded", () => {
             svg.panZoom(PAN_ZOOM_OPTIONS)
             svg.data('panZoomEnabled', true)
         }
-        console.log(movingElements)
         let elements = [...movingElements]
         const grid: number = svg.data("grid") || 1
         const scale: number = (svg.data("scale") || 1)
@@ -191,15 +190,13 @@ window.addEventListener("DOMContentLoaded", () => {
                 console.log(offset)
                 const x = offset[0]
                 const y = offset[1];
-                (s.fetch()?.element)?.cx(Math.round((mx + x) * scale / grid) * grid);
-                (s.fetch()?.element)?.cy(Math.round((my + y) * scale / grid) * grid)
+                s.fetch()!.position = { x: Math.round((mx + x) * scale / grid) * grid, y: Math.round((my + y) * scale / grid) * grid }
             })
         }, () => {
             elements.forEach(({ s, offset, startMouse }) => {
                 const x = offset[0] + startMouse[0]
                 const y = offset[1] + startMouse[1];
-                (s.fetch()?.element)?.cx(Math.round(x * scale / grid) * grid);
-                (s.fetch()?.element)?.cy(Math.round(y * scale / grid) * grid)
+                s.fetch()!.position = { x: Math.round(x * scale / grid) * grid, y: Math.round(y * scale / grid) * grid }
             })
         })
         movingElements.forEach(el => el.s.emit("update"))
@@ -208,20 +205,20 @@ window.addEventListener("DOMContentLoaded", () => {
     })
     svg.on("mousemove", (ev) => {
         if (movingElements.length) svg.data("moving", true)
-        movingElements.forEach(({ e, offset }) => {
+        movingElements.forEach(({ s, offset }) => {
             const grid: number = svg.data("grid") || 1
             const scale: number = (svg.data("scale") || 1)
             const x = Math.round(((ev as MouseEvent).offsetX + offset[0]) * scale / grid) * grid
             const y = Math.round(((ev as MouseEvent).offsetY + offset[1]) * scale / grid) * grid
-            e.cx(x)
-            e.cy(y)
+            s.position = {x, y}
         })
+        reloadBBs()
     })
     document.addEventListener("keypress", e => {
         if (e.target != document.body) return
         if (e.code == "KeyR") {
             selectedElements.forEach(el => {
-                el.rotation += e.shiftKey ? -(Math.PI*0.5) : (Math.PI*0.5)
+                el.rotation += e.shiftKey ? -(Math.PI * 0.25) : (Math.PI * 0.25)
                 el.emit("update")
             })
         }
@@ -230,8 +227,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
 export class SelectionIndicator {
     element: Element
-    constructor(el: Element) {
-        const bb = el.bbox()
+    constructor(el: SelectableShape) {
+        const bb = el.bbox
         const setMovingElements = (ev: Event): void => {
             const scale: number = (svg.data("scale") || 1)
             svg.panZoom(false)
@@ -244,17 +241,19 @@ export class SelectionIndicator {
                     (ev as MouseEvent).offsetY
                 ],
                 offset: [
-                    e.element.cx() / scale - (ev as MouseEvent).offsetX,
-                    e.element.cy() / scale - (ev as MouseEvent).offsetY
+                    e.position.x / scale - (ev as MouseEvent).offsetX,
+                    e.position.y / scale - (ev as MouseEvent).offsetY
                 ]
             }))
         }
         this.element = svg.rect()
             .addClass("ns")
             .addClass("nu")
-            .addTo(el)
+            .addTo(el.element)
             .size(bb.w, bb.h)
-            .center(bb.cx, bb.cy)
+            .x(bb.x)
+            .y(bb.y)
+            .rotate(radToDeg(el.rotation))
             .fill("#08f1")
             .stroke({ width: 3, color: "#08f7" })
             .attr({ style: "cursor: move" })
