@@ -36,7 +36,11 @@ export class SectionShape extends SelectableShape {
         this.onupdate()
     }
     onupdate() {
+        this.#generateKeypoints()
         this.#updatePatterns()
+    }
+    #generateKeypoints() {
+        
     }
     #updatePatterns() {
         const newPatterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => {
@@ -75,7 +79,6 @@ export class SectionShape extends SelectableShape {
         this.routes.forEach(r => {
             const start = this.start.getSlot(r.id)
             const end = this.end.getSlot(r.id)
-            console.log(start, end)
             if (!end || !start) return
             r.points = [
                 `M ${start.x},${start.y}`,

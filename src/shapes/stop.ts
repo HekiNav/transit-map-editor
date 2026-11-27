@@ -22,7 +22,6 @@ export class StopShape extends SelectableShape {
         super(new Rect().size(config.stop_size, config.stop_size).stroke({ color: "#000", width: config.stop_stroke }).fill("#fff").radius(config.stop_size * 0.5, config.stop_size * 0.5), id, "stop", true)
         this.clone = () => { const e = new StopShape({ x: this.position.x, y: this.position.y }, id); e.gtfsIds = this.gtfsIds; this.#updateElementGTFSIds(); this.#updateStops(); return e }
         this.gtfsIds = new Set(this.element.attr("data-gtfs-ids")?.split(",") || [])
-        this.position = pos
         this.#updateStops()
         graph.stops.add(this)
         this.on("remove", () => {
@@ -30,6 +29,7 @@ export class StopShape extends SelectableShape {
             graph.stops.delete(this)
         })
         this.setWidth(0)
+        this.center = pos
     }
     setWidth(w: number) {
         this.size = {x: config.stop_size, y: Math.max(1, w) * config.stop_size}

@@ -59,11 +59,14 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     get center() {
         return { x: this.#position.x + this.#size.x * 0.5, y: this.#position.y + this.#size.y * 0.5 }
     }
+    set center(new_center) {
+        this.#position = {x: new_center.x - this.centerOffset.x, y: new_center.y - this.centerOffset.y}
+        this.#updateTransform()
+    }
     get centerOffset() {
         return { x: this.#size.x * 0.5, y: this.#size.y * 0.5 }
     }
     get bbox() {
-        console.log(this)
         return { x: this.#position.x, y: this.#position.y, w: this.#size.x, h: this.#size.y}
     }
     set position(new_pos) {

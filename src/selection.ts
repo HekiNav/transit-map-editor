@@ -187,7 +187,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const my = (ev as MouseEvent).offsetY
         if (svg.data("moving")) undo.logChange(`Moved ${movingElements.length} object${movingElements.length == 1 ? "" : "s"}`, () => {
             elements.forEach(({ s, offset }) => {
-                console.log(offset)
                 const x = offset[0]
                 const y = offset[1];
                 s.fetch()!.position = { x: Math.round((mx + x) * scale / grid) * grid, y: Math.round((my + y) * scale / grid) * grid }
