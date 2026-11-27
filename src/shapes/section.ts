@@ -5,7 +5,7 @@ import { StopShape } from "./stop";
 import { RouteSectionShape } from "./route_section"
 import { Route } from "../util/route";
 import { randomColor } from "../util/color"
-import { SectionKeypointShape } from "./section_keypoint"
+import { SectionKeypointConnector, SectionKeypointShape } from "./section_keypoint"
 
 export class SectionShape extends SelectableShape {
     gtfsIds: Set<string> = new Set<string>()
@@ -14,6 +14,7 @@ export class SectionShape extends SelectableShape {
     patterns: PatternWithRoute[] = []
     routes: RouteSectionShape[] = []
     keypoints: SectionKeypointShape[] = []
+    keypointConnectors: SectionKeypointConnector[] = []
     clone: () => SectionShape
     constructor(start: StopShape, end: StopShape, id = crypto.randomUUID()) {
         super(new G(), id, "section")
@@ -34,13 +35,25 @@ export class SectionShape extends SelectableShape {
         this.on("update", () => this.onupdate())
         this.refreshSectionRoutes()
         this.onupdate()
+        this.on("select", () => {
+            [...this.keypoints, ...this.keypointConnectors].forEach(k => k.element.show())
+        })
+        this.on("deselect", () => {
+            [...this.keypoints, ...this.keypointConnectors].forEach(k => k.element.hide())
+        })
     }
     onupdate() {
         this.#generateKeypoints()
         this.#updatePatterns()
     }
     #generateKeypoints() {
-        
+        const otherPoints = this.keypoints.slice(1, -1)
+
+        this.keypoints[0]?.remove()
+        this.keypoints[this.keypoints.length-1]?.remove()
+
+        this.keypointConnectors.forEach(c => c.remove())
+        this.keypoints = [new SectionKeypointShape(this.end.position), ...otherPoints, new SectionKeypointShape(this.end.position)]
     }
     #updatePatterns() {
         const newPatterns = this.start.stops.flatMap(s => s.patterns.map(p => p.pattern!)).filter(p => {
@@ -75,7 +88,6 @@ export class SectionShape extends SelectableShape {
         this.#updateRoutes()
     }
     #updateRoutes() {
-        const minimumSectionLength = (this.routes.length + 1) * config.stop_size
         this.routes.forEach(r => {
             const start = this.start.getSlot(r.id)
             const end = this.end.getSlot(r.id)

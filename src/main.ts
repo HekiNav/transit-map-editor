@@ -56,7 +56,7 @@ import { SelectableShape, type ShapeType } from './shape'
 const previousEdits = document.querySelector("#previous-edits")!
 const futureEdits = document.querySelector("#future-edits")!
 
-const DRAW_ORDER: ShapeType[] = ["section_keypoint", "basic_circle", "route_section", "section", "stop"]
+const DRAW_ORDER: ShapeType[] = ["basic_circle", "route_section", "section", "stop", "section_keypoint", "section_keypoint"]
 
 export const PAN_ZOOM_OPTIONS: PanZoomOptions = {
     zoomFactor: 0.5,

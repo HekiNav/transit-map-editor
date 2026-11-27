@@ -3,9 +3,9 @@ import { getSelection, select } from "./selection";
 import { Eventable } from "./util/event"
 import { normalizeAngle, radToDeg } from "./util/math";
 
-export type ShapeType = "basic_circle" | "stop" | "route_section" | "section" | "section_keypoint"
+export type ShapeType = "basic_circle" | "stop" | "route_section" | "section" | "section_keypoint" | "section_keypoint_connector"
 
-export class SelectableShape extends Eventable<"update" | "remove"> {
+export class SelectableShape extends Eventable<"update" | "remove" | "select" | "deselect"> {
     element: Element;
     id: `${string}-${string}-${string}-${string}-${string}`
     #removed: boolean = false
@@ -13,9 +13,10 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
     #rotation: number = 0
     #position: { x: number, y: number } = { x: 0, y: 0 }
     #size: { x: number, y: number } = { x: 0, y: 0 }
+    #selectable: boolean
     clone: () => SelectableShape
-    constructor(el: Element, id: `${string}-${string}-${string}-${string}-${string}`, type: ShapeType, selected = false) {
-        super("update", "remove")
+    constructor(el: Element, id: `${string}-${string}-${string}-${string}-${string}`, type: ShapeType, selected = false, selectable = true) {
+        super("update", "remove", "select", "deselect")
         this.clone = () => new SelectableShape(el, id, type, selected)
         let group = svg.findOne("#group-" + type)
         if (!group) group = svg.group().id("group-" + type)
@@ -23,6 +24,7 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
             .add(el)
         group.add(this.element)
         if (selected) select(this)
+        this.#selectable = selectable
 
         this.id = id
 
@@ -34,7 +36,7 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
         if (!this.element.data("type")) console.warn("Element has no type: ", this.element.node)
         if (!this.element.id()) console.warn("Element has no ID: ", this.element.node)
 
-        this.element.on("click", (e) => {
+        if (this.#selectable) this.element.on("click", (e) => {
             if (svg.data("moving")) return
             select(this, !(e as MouseEvent).shiftKey)
         })
@@ -60,14 +62,14 @@ export class SelectableShape extends Eventable<"update" | "remove"> {
         return { x: this.#position.x + this.#size.x * 0.5, y: this.#position.y + this.#size.y * 0.5 }
     }
     set center(new_center) {
-        this.#position = {x: new_center.x - this.centerOffset.x, y: new_center.y - this.centerOffset.y}
+        this.#position = { x: new_center.x - this.centerOffset.x, y: new_center.y - this.centerOffset.y }
         this.#updateTransform()
     }
     get centerOffset() {
         return { x: this.#size.x * 0.5, y: this.#size.y * 0.5 }
     }
     get bbox() {
-        return { x: this.#position.x, y: this.#position.y, w: this.#size.x, h: this.#size.y}
+        return { x: this.#position.x, y: this.#position.y, w: this.#size.x, h: this.#size.y }
     }
     set position(new_pos) {
         this.#position = new_pos
