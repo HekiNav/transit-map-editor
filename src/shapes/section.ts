@@ -82,8 +82,6 @@ export class SectionShape extends SelectableShape {
             if (!end || !start) return
             r.points = [
                 `M ${start.x},${start.y}`,
-                `L ${start.x + start.direction[0] * minimumSectionLength},${start.y + start.direction[1] * minimumSectionLength}`,
-                `L ${end.x + end.direction[0] * minimumSectionLength},${end.y + end.direction[1] * minimumSectionLength}`,
                 `L ${end.x},${end.y}`,
             ]
             r.emit("update")

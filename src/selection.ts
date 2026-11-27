@@ -110,7 +110,7 @@ function onSelection() {
             addSearch("stop", "#stop-search", selected.gtfsIds, (...ids) => selected.toggleId(...ids))
             addSlotEditor("#stop-slots", () => selected.getAllSlots(), (i, j, s) => {
                 selected.setSlot(i, j, s)
-            })
+            }, () => selected.updateSlots())
             addGraphRouteEditor("#stop-routes", selected.sections.values().flatMap(s => s.routes.flatMap(r => r.route.gtfsId)).toArray())
         } else if (selected instanceof BasicCircleShape) {
             selectionCont.innerHTML = "Circle"

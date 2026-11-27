@@ -4,7 +4,6 @@ import { SectionShape } from "./section";
 import type { PatternWithRoute, Stop, StopWithPattern, StopWithRoutes } from "../db/schema";
 import { db } from "../db/init";
 import { angleToDirection, normalizeAngle, transpose } from "../util/math"
-import type { ArrayXY } from "@svgdotjs/svg.js";
 
 export interface AdjacentStop {
     stop: Stop,
@@ -107,7 +106,7 @@ export class StopShape extends SelectableShape {
     linkSection(s: SectionShape) {
         this.sections.add(s)
         s.routes.forEach(r => this.#addSlot({ section: s.id, route: r.id, patterns: r.patterns.map(p => p.pattern_id), routes: [...new Set(r.patterns.map(p => p.route_id))] }))
-        this.#updateSlots()
+        this.updateSlots()
     }
     #addSlot(s: NonNullable<StopSlot>) {
         const idxs = this.#slots.reduce<[number, number]>((p, c, i) => c.some(e => e !== null && (e.routes[0] == s.routes[0])) ? [i, c.findIndex(e => e === null)] : p, [-1, -1] as [number, number])
@@ -122,23 +121,21 @@ export class StopShape extends SelectableShape {
     unlinkSection(s: SectionShape) {
         this.sections.delete(s)
         this.#removeSlots(s.id)
-        this.#updateSlots()
+        this.updateSlots()
     }
     regenerateSlots(section: SectionShape) {
         this.#removeSlots(section.id)
         section.routes.forEach(r => this.#addSlot({ section: section.id, route: r.id, patterns: r.patterns.map(p => p.pattern_id), routes: [...new Set(r.patterns.map(p => p.route_id))] }))
-        this.#updateSlots()
+        this.updateSlots()
     }
     getSlot(route: string) {
-        return this.#slots.reduce<null | { x: number, y: number, direction: ArrayXY }>((p, c, i) => {
+        return this.#slots.reduce<null | { x: number, y: number }>((p, c, i) => {
             const index = c.findIndex(s => s?.route == route)
-            const normalDirection = angleToDirection(normalizeAngle(this.rotation + Math.PI * index))
             const direction = angleToDirection(normalizeAngle(this.rotation + Math.PI * 0.5))
             if (index == -1 || p !== null) return p
             else return {
                 x: this.center.x + config.stop_size * (i - this.#slots.length * 0.5 + 0.5) * direction[0],
                 y: this.center.y + config.stop_size * (i - this.#slots.length * 0.5 + 0.5) * direction[1],
-                direction: normalDirection
             }
         }, null)
     }
@@ -149,9 +146,8 @@ export class StopShape extends SelectableShape {
         if (i > this.#slots.length || j >= 2) return
         if (i == this.#slots.length) this.#slots.push([null, null])
         this.#slots[i][j] = s
-        this.#updateSlots()
     }
-    #updateSlots() {
+    updateSlots() {
         if (this.#slots[this.#slots.length - 1]?.every(e => e === null)) this.#slots.pop()
         this.#slots.splice(0, this.#slots.findIndex(e => e.some(a => a !== null)))
         this.sections.forEach(s => s.emit("update"))
